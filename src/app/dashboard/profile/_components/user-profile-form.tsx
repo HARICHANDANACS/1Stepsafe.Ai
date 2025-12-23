@@ -188,7 +188,7 @@ export function UserProfileForm({ userProfile, onSave }: UserProfileFormProps) {
            <Select onValueChange={field.onChange} defaultValue={field.value}>
               <SelectTrigger>
                  <SelectValue placeholder="Select level" />
-              </Trigger>
+              </SelectTrigger>
               <SelectContent>
                  {SENSITIVITY_LEVELS.map((level) => (
                  <SelectItem key={level} value={level}>
