@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { useForm, type UseFormReturn } from 'react-hook-form';
+import { type UseFormReturn } from 'react-hook-form';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,7 +23,6 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MapPin } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import type { UserInput, AgeGroup, ActivityLevel } from '@/lib/data';
 
 const formSchema = z.object({
   city: z.string().min(2, {
@@ -46,41 +45,62 @@ export function LocationStep({ form, isLoading }: LocationStepProps) {
     setIsDetecting(true);
     if (!navigator.geolocation) {
       toast({
-        variant: "destructive",
-        title: "Geolocation is not supported",
-        description: "Your browser does not support geolocation.",
+        variant: 'destructive',
+        title: 'Geolocation is not supported',
+        description: 'Your browser does not support geolocation.',
       });
       setIsDetecting(false);
       return;
     }
 
     navigator.geolocation.getCurrentPosition(
-      (position) => {
-        // In a real app, you would use a reverse geocoding service to get the city from coordinates.
-        // For this demo, we'll mock it.
-        const mockCity = 'New York';
-        form.setValue('city', mockCity);
-        toast({
-          title: 'Location Detected',
-          description: `Your location has been set to ${mockCity}.`,
-        });
-        setIsDetecting(false);
+      async (position) => {
+        try {
+          const { latitude, longitude } = position.coords;
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
+          );
+          if (!response.ok) {
+            throw new Error('Failed to fetch location data');
+          }
+          const data = await response.json();
+          const city = data.address.city || data.address.town || data.address.village;
+
+          if (city) {
+            form.setValue('city', city);
+            toast({
+              title: 'Location Detected',
+              description: `Your location has been set to ${city}.`,
+            });
+          } else {
+            throw new Error("Could not determine city from location.");
+          }
+        } catch (error) {
+          console.error('Reverse geocoding error:', error);
+          toast({
+            variant: 'destructive',
+            title: 'Location Detection Failed',
+            description: 'Could not automatically determine your city.',
+          });
+        } finally {
+          setIsDetecting(false);
+        }
       },
       (error) => {
-        let errorMessage = "An unknown error occurred.";
-        switch(error.code) {
-            case error.PERMISSION_DENIED:
-                errorMessage = "You denied the request for Geolocation.";
-                break;
-            case error.POSITION_UNAVAILABLE:
-                errorMessage = "Location information is unavailable.";
-                break;
-            case error.TIMEOUT:
-                errorMessage = "The request to get user location timed out.";
-                break;
+        let errorMessage = 'An unknown error occurred.';
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            errorMessage = 'You denied the request for Geolocation.';
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorMessage = 'Location information is unavailable.';
+            break;
+          case error.TIMEOUT:
+            errorMessage = 'The request to get user location timed out.';
+            break;
         }
         toast({
-          variant: "destructive",
+          variant: 'destructive',
           title: 'Location Detection Failed',
           description: errorMessage,
         });
@@ -90,7 +110,7 @@ export function LocationStep({ form, isLoading }: LocationStepProps) {
   };
 
   return (
-    <Card className="max-w-2xl mx-auto">
+    <Card className="max-w-2xl mx-auto bg-card/50 border-border/50">
       <CardHeader>
         <CardTitle>Your Information</CardTitle>
       </CardHeader>

@@ -78,6 +78,11 @@ export default function CheckPage() {
       setCurrentStep(prev => prev + 1);
     }
   };
+  
+  const handleFinalStep = () => {
+    // This function will be passed to the final step's "Start Over" button.
+    handleStartOver();
+  };
 
   const handleBack = () => {
     if (currentStep > 1) {
@@ -97,7 +102,7 @@ export default function CheckPage() {
       return (
          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {[...Array(5)].map((_, i) => (
-            <div key={i} className="flex flex-col space-y-3 p-4 border rounded-lg">
+            <div key={i} className="flex flex-col space-y-3 p-4 border rounded-lg bg-card">
                 <div className="flex justify-between">
                     <Skeleton className="h-5 w-24" />
                     <Skeleton className="h-5 w-5 rounded-full" />
@@ -140,7 +145,7 @@ export default function CheckPage() {
   const currentConfig = stepConfig[currentStep - 1];
 
   return (
-    <div className="flex flex-col min-h-screen bg-secondary/30">
+    <div className="flex flex-col min-h-screen bg-background">
       <Header />
       <main className="flex-grow">
         <StepWrapper
@@ -150,7 +155,7 @@ export default function CheckPage() {
           totalSteps={TOTAL_STEPS}
           onNext={currentStep < TOTAL_STEPS ? handleNext : undefined}
           onBack={currentStep > 1 ? handleBack : undefined}
-          onStartOver={currentStep === TOTAL_STEPS ? handleStartOver : undefined}
+          onStartOver={currentStep === TOTAL_STEPS ? handleFinalStep : undefined}
           isNextLoading={isLoading && currentStep === 1}
         >
           {renderStepContent()}

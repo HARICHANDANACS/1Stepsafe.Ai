@@ -43,23 +43,22 @@ export function StepWrapper({
 
       <div className="mb-8 min-h-[200px]">{children}</div>
 
-      <div className="flex justify-between items-center gap-4">
+      <div className="flex justify-between items-center gap-4 mt-12">
         <div>
           {onBack && (
-            <Button variant="outline" onClick={onBack}>
+            <Button variant="outline" onClick={onBack} disabled={isNextLoading}>
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back
             </Button>
           )}
-           {onStartOver && (
-            <Button variant="ghost" onClick={onStartOver}>
+        </div>
+        <div>
+           {onStartOver ? (
+            <Button onClick={onStartOver} size="lg" variant="outline">
               <RotateCcw className="mr-2 h-4 w-4" />
               Start Over
             </Button>
-          )}
-        </div>
-        <div>
-          {onNext && (
+          ) : onNext ? (
             <Button
               onClick={onNext}
               disabled={isNextDisabled || isNextLoading}
@@ -68,7 +67,7 @@ export function StepWrapper({
               {isNextLoading ? "Analyzing..." : "Next"}
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
-          )}
+          ) : null}
         </div>
       </div>
     </div>
