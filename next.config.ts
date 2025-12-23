@@ -18,14 +18,12 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  experimental: {
-    // Adding the allowedDevOrigins configuration for the development server
-    // to resolve the cross-origin request error.
-    allowedDevOrigins: [
-      '*.cloudworkstations.dev',
-      '*.firebase.studio',
-    ],
-  },
+  // Adding the allowedDevOrigins configuration for the development server
+  // to resolve the cross-origin request error.
+  allowedDevOrigins: [
+    '*.cloudworkstations.dev',
+    '*.firebase.studio',
+  ],
 };
 
 export default nextConfig;
