@@ -154,7 +154,7 @@ export function UserProfileForm({ userProfile, onSave }: UserProfileFormProps) {
             <SelectTrigger>
               <SelectValue placeholder="Select a time" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="max-h-60">
               {timeOptions.map((time) => (
                 <SelectItem key={time} value={time}>
                   {time}
@@ -188,7 +188,7 @@ export function UserProfileForm({ userProfile, onSave }: UserProfileFormProps) {
            <Select onValueChange={field.onChange} defaultValue={field.value}>
               <SelectTrigger>
                  <SelectValue placeholder="Select level" />
-              </SelectTrigger>
+              </Trigger>
               <SelectContent>
                  {SENSITIVITY_LEVELS.map((level) => (
                  <SelectItem key={level} value={level}>
