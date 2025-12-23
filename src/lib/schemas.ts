@@ -1,3 +1,4 @@
+'use server';
 import { z } from 'zod';
 
 export const YesNoSchema = z.enum(['Yes', 'No']);
@@ -17,7 +18,11 @@ export const UserProfileSchema = z.object({
   commuteType: z.enum(['Walk', 'Public Transport', 'Bike', 'Drive']),
   sensitivities: z.object({
     heat: z.enum(['Low', 'Medium', 'High']),
-    aqi: YesNoSchema,
+    aqi: z.preprocess((val) => {
+        if (val === 'Medium' || val === 'High') return 'Yes';
+        if (val === 'Low') return 'No';
+        return val;
+    }, z.enum(['Yes', 'No'])),
   }),
   healthProfile: z.object({
     ageRange: z.enum(['18-29', '30-49', '50-64', '65+']).optional(),
