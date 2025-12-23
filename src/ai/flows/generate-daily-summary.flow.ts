@@ -95,7 +95,7 @@ Analyze the user's profile and today's climate data to generate a personalized s
     - Early morning and late evening are usually safer. Mark these as \`isSafe: true\`.
     - Create at least 3-4 distinct time windows. The windows should be contiguous and cover a 24-hour period.
 
-4. **Set `whatChanged` values:**
+4. **Set \`whatChanged\` values:**
     - This should already be provided as input. Just pass it through to the output.
 `,
 });
