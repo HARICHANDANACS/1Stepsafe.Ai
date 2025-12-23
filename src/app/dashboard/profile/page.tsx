@@ -7,6 +7,7 @@ import { UserProfileForm } from './_components/user-profile-form';
 import type { UserProfile } from '@/lib/data';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useForm } from 'react-hook-form';
 
 export default function ProfilePage() {
   const { user, isUserLoading } = useUser();
@@ -18,19 +19,22 @@ export default function ProfilePage() {
   }, [firestore, user]);
 
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userProfileRef);
+  
+  const { reset } = useForm<UserProfile>();
 
   const handleSaveProfile = (data: Partial<UserProfile>) => {
     if (!userProfileRef || !user) return;
     
     // Construct the full profile object, ensuring the ID is always present.
-    const profileData: Partial<UserProfile> = {
+    const profileData = {
       ...data,
       id: user.uid,
     };
     
-    // Use the non-blocking update to save the data. `merge: true` ensures
-    // we only update the fields provided, without overwriting the entire document.
     setDocumentNonBlocking(userProfileRef, profileData, { merge: true });
+    
+    // After saving, reset the form with the new data to update the dirty state.
+    reset(data as UserProfile);
   };
 
   const isLoading = isUserLoading || isProfileLoading;
@@ -54,6 +58,7 @@ export default function ProfilePage() {
                 <UserProfileForm
                   userProfile={userProfile}
                   onSave={handleSaveProfile}
+                  reset={reset}
                 />
               </CardContent>
             </Card>

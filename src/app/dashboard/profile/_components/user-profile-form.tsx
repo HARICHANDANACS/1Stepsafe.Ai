@@ -1,6 +1,6 @@
 'use client';
 
-import { useForm, Controller } from 'react-hook-form';
+import { useForm, Controller, UseFormReset } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
@@ -47,7 +47,8 @@ type ProfileFormValues = z.infer<typeof formSchema>;
 
 interface UserProfileFormProps {
   userProfile: UserProfile | null;
-  onSave: (data: Partial<UserProfile>) => void;
+  onSave: (data: ProfileFormValues) => void;
+  reset: UseFormReset<ProfileFormValues>;
 }
 
 const SENSITIVITY_LEVELS: ClimateSensitivity[] = ['Low', 'Medium', 'High'];
@@ -72,13 +73,12 @@ const generateTimeOptions = () => {
 };
 const timeOptions = generateTimeOptions();
 
-export function UserProfileForm({ userProfile, onSave }: UserProfileFormProps) {
+export function UserProfileForm({ userProfile, onSave, reset }: UserProfileFormProps) {
   const [isDetecting, setIsDetecting] = useState(false);
   const {
     register,
     handleSubmit,
     control,
-    reset,
     setValue,
     formState: { errors, isSubmitting, isDirty },
   } = useForm<ProfileFormValues>({
