@@ -9,6 +9,10 @@
           "type": "string",
           "description": "The user's unique ID, matching their Firebase Auth UID."
         },
+        "name": {
+          "type": "string",
+          "description": "The user's full name."
+        },
         "location": {
           "type": "object",
           "description": "The user's primary location for climate data.",
@@ -82,7 +86,7 @@
           }
         }
       },
-      "required": ["id", "location", "routine", "commuteType", "sensitivities"]
+      "required": ["id", "name", "location", "routine", "commuteType", "sensitivities"]
     }
   },
   "auth": {

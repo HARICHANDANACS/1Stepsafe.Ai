@@ -16,6 +16,7 @@ export type DailyRoutine = {
 
 export type UserProfile = {
   id: string; // Firebase Auth UID
+  name: string;
   location: {
     city: string;
     lat?: number;

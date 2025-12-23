@@ -11,7 +11,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useAuth, useUser } from '@/firebase';
+import { useAuth, useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
+import type { UserProfile } from '@/lib/data';
+import { doc } from 'firebase/firestore';
 import { LogOut, User as UserIcon, Settings } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -19,12 +21,25 @@ import { useRouter } from 'next/navigation';
 export function UserNav() {
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
+  const firestore = useFirestore();
   const router = useRouter();
+
+  const userProfileRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [firestore, user]);
+
+  const { data: userProfile } = useDoc<UserProfile>(userProfileRef);
 
   const handleLogout = async () => {
     await auth.signOut();
     router.push('/'); // Redirect to home page after logout
   };
+
+  const getInitials = (name?: string) => {
+    if (!name) return '';
+    return name.split(' ').map(n => n[0]).join('').toUpperCase();
+  }
 
   if (isUserLoading) {
     return <div className="h-8 w-8 rounded-full bg-muted animate-pulse" />;
@@ -49,7 +64,7 @@ export function UserNav() {
         <Button variant="outline" size="icon" className="overflow-hidden rounded-full">
             <Avatar className="h-8 w-8">
                 <AvatarFallback>
-                <UserIcon className="h-4 w-4" />
+                  {userProfile?.name ? getInitials(userProfile.name) : <UserIcon className="h-4 w-4" />}
                 </AvatarFallback>
             </Avatar>
         </Button>
@@ -57,7 +72,7 @@ export function UserNav() {
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">My Account</p>
+            <p className="text-sm font-medium leading-none">{userProfile?.name || 'My Account'}</p>
             <p className="text-xs leading-none text-muted-foreground">
               {user.email}
             </p>

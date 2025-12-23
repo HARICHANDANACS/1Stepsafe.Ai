@@ -4,6 +4,7 @@ export const YesNoSchema = z.enum(['Yes', 'No']);
 
 export const UserProfileSchema = z.object({
   id: z.string(),
+  name: z.string().min(1, 'Name is required.'),
   location: z.object({
     city: z.string(),
     lat: z.number().optional(),

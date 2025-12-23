@@ -103,7 +103,7 @@ export function UserProfileForm({ form, onSave }: UserProfileFormProps) {
   };
 
   const renderTimeSelector = (name: string, label: string) => (
-    <div>
+    <div className="space-y-2">
       <Label htmlFor={name}>{label}</Label>
        <Controller
           name={name}
@@ -127,13 +127,13 @@ export function UserProfileForm({ form, onSave }: UserProfileFormProps) {
   );
   
   const renderSensitivitySelector = (name: string, label: string, explanation: string, levels: string[]) => (
-     <div>
-        <div className="flex items-center gap-2 mb-2">
+     <div className="space-y-2">
+        <div className="flex items-center gap-2">
            <Label>{label}</Label>
            <TooltipProvider>
               <Tooltip>
                  <TooltipTrigger asChild>
-                    <Info className="h-4 w-4 text-muted-foreground" />
+                    <Info className="h-4 w-4 text-muted-foreground cursor-help" />
                  </TooltipTrigger>
                  <TooltipContent>
                     <p className="max-w-xs">{explanation}</p>
@@ -163,13 +163,13 @@ export function UserProfileForm({ form, onSave }: UserProfileFormProps) {
   );
 
   const renderHealthSelector = (name: string, label: string, explanation: string, options: string[]) => (
-    <div>
-       <div className="flex items-center gap-2 mb-2">
+    <div className="space-y-2">
+       <div className="flex items-center gap-2">
           <Label>{label}</Label>
           <TooltipProvider>
              <Tooltip>
                 <TooltipTrigger asChild>
-                   <Info className="h-4 w-4 text-muted-foreground" />
+                   <Info className="h-4 w-4 text-muted-foreground cursor-help" />
                 </TooltipTrigger>
                 <TooltipContent>
                    <p className="max-w-xs">{explanation}</p>
@@ -201,82 +201,74 @@ export function UserProfileForm({ form, onSave }: UserProfileFormProps) {
 
   return (
     <form onSubmit={handleSubmit(onSave)} className="space-y-8">
+      {/* --- Section: Core Info --- */}
       <div className="space-y-4">
-        <h3 className="text-lg font-medium">Location</h3>
-        <div className="grid grid-cols-1 gap-4">
-          <div>
+        <h3 className="text-lg font-medium">Core Information</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-2">
+            <Label htmlFor="name">Full Name</Label>
+            <Input id="name" {...register('name')} placeholder="e.g., Jane Doe" />
+            {errors.name && <p className="text-sm text-destructive">{(errors.name as any).message}</p>}
+          </div>
+          <div className="space-y-2">
             <Label htmlFor="city">Your Primary City</Label>
             <div className="flex items-center gap-2">
-              <Input
-                id="city"
-                {...register('location.city')}
-                placeholder="e.g., San Francisco"
-              />
+              <Input id="city" {...register('location.city')} placeholder="e.g., San Francisco" />
               <Button type="button" variant="outline" size="icon" onClick={handleDetectLocation} disabled={isDetecting}>
                 <LocateFixed className="h-4 w-4" />
               </Button>
             </div>
-            {errors.location?.city && (
-              <p className="text-sm text-destructive">
-                {(errors.location as any).city.message}
-              </p>
-            )}
+            {errors.location?.city && <p className="text-sm text-destructive">{(errors.location as any).city.message}</p>}
           </div>
         </div>
       </div>
 
       <Separator />
 
+      {/* --- Section: Daily Routine --- */}
       <div className="space-y-4">
         <h3 className="text-lg font-medium">Daily Routine</h3>
-        <div className="grid grid-cols-2 gap-4">
-          {renderTimeSelector('routine.morningCommuteStart', 'Morning Commute')}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          {renderTimeSelector('routine.morningCommuteStart', 'Morning Commute Starts')}
           {renderTimeSelector('routine.workHoursStart', 'Work Day Starts')}
-          {renderTimeSelector('routine.eveningCommuteStart', 'Evening Commute')}
+          {renderTimeSelector('routine.eveningCommuteStart', 'Evening Commute Starts')}
         </div>
       </div>
 
       <Separator />
-
+      
+      {/* --- Section: Commute & Sensitivities --- */}
       <div className="space-y-4">
         <h3 className="text-lg font-medium">Commute & Climate Sensitivities</h3>
-        <div className="grid grid-cols-1 gap-6">
-          <div>
-            <Label>Primary Commute</Label>
-            <Controller
-              name="commuteType"
-              control={control}
-              render={({ field }) => (
-                <Select
-                  onValueChange={field.onChange}
-                  value={field.value}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select commute type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {COMMUTE_TYPES.map((type) => (
-                      <SelectItem key={type} value={type}>
-                        {type}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            />
-          </div>
-        </div>
-         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="space-y-2 md:col-span-1">
+                <Label>Primary Commute Type</Label>
+                <Controller
+                  name="commuteType"
+                  control={control}
+                  render={({ field }) => (
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select commute type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {COMMUTE_TYPES.map((type) => (<SelectItem key={type} value={type}>{type}</SelectItem>))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </div>
            {renderSensitivitySelector( 'sensitivities.heat', 'Heat Sensitivity', 'How much hot weather affects your well-being and ability to function.', HEAT_SENSITIVITY_LEVELS )}
-           {renderSensitivitySelector( 'sensitivities.aqi', 'AQI Sensitivity', 'Answer "Yes" if you have any respiratory conditions or are sensitive to air pollution.', AQI_SENSITIVITY_LEVELS )}
+           {renderSensitivitySelector( 'sensitivities.aqi', 'Air Quality (AQI) Sensitivity', 'Answer "Yes" if you have any respiratory conditions or are sensitive to air pollution.', AQI_SENSITIVITY_LEVELS )}
         </div>
       </div>
 
       <Separator />
-
+      
+      {/* --- Section: Health Profile --- */}
       <div className="space-y-4">
         <h3 className="text-lg font-medium">Personal Health Profile (Optional)</h3>
-         <p className="text-sm text-muted-foreground">Providing this information allows for more tailored and accurate recommendations.</p>
+        <p className="text-sm text-muted-foreground">Providing this information allows for more tailored and accurate recommendations.</p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
            {renderHealthSelector( 'healthProfile.ageRange', 'Age Range', 'Age can influence sensitivity to heat and other environmental factors.', AGE_RANGES )}
            {renderHealthSelector( 'healthProfile.skinType', 'Skin Type (Fitzpatrick Scale)', 'Helps determine your skin\'s sensitivity to UV radiation. Type I (Very Fair) burns easily, while Type VI (Black) is least sensitive.', SKIN_TYPES )}
@@ -284,7 +276,7 @@ export function UserProfileForm({ form, onSave }: UserProfileFormProps) {
         </div>
       </div>
 
-      <Button type="submit" disabled={isSubmitting || !isDirty}>
+      <Button type="submit" disabled={isSubmitting || !isDirty} size="lg">
         {isSubmitting ? 'Saving...' : 'Save Profile & View Dashboard'}
       </Button>
     </form>

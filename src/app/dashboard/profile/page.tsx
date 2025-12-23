@@ -20,6 +20,7 @@ import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 
 const formSchema = z.object({
+  name: z.string().min(1, 'Name is required.'),
   location: z.object({
     city: z.string().min(1, 'City is required'),
     lat: z.number().optional(),
@@ -60,6 +61,7 @@ export default function ProfilePage() {
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      name: '',
       location: { city: '' },
       routine: {
         morningCommuteStart: '08:00',
@@ -99,7 +101,7 @@ export default function ProfilePage() {
   const isLoading = isUserLoading || isProfileLoading;
 
   return (
-    <div className="mx-auto grid max-w-4xl flex-1 auto-rows-max gap-4">
+    <div className="mx-auto grid max-w-5xl flex-1 auto-rows-max gap-4">
         <div className="flex items-center gap-4">
             <h1 className="flex-1 shrink-0 whitespace-nowrap text-xl font-semibold tracking-tight sm:grow-0">
                 Your Personal Profile
@@ -110,9 +112,10 @@ export default function ProfilePage() {
         ) : user ? (
         <Card>
             <CardHeader>
+              <CardTitle>Welcome, {userProfile?.name || 'User'}</CardTitle>
             <CardDescription>
                 This information helps StepSafe AI provide personalized
-                climate-health guidance. It is saved securely and never
+                climate-health guidance. Your data is saved securely and is never
                 shared.
             </CardDescription>
             </CardHeader>
