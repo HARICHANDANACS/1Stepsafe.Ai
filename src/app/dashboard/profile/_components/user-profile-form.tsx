@@ -26,6 +26,8 @@ import {
 const formSchema = z.object({
   location: z.object({
     city: z.string().min(1, 'City is required'),
+    lat: z.number().optional(),
+    lon: z.number().optional(),
   }),
   routine: z.object({
     morningCommuteStart: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
@@ -88,6 +90,8 @@ export function UserProfileForm({ userProfile, onSave }: UserProfileFormProps) {
       reset({
         location: {
           city: userProfile.location?.city || '',
+          lat: userProfile.location?.lat,
+          lon: userProfile.location?.lon,
         },
         routine: userProfile.routine || {
           morningCommuteStart: '08:00',
@@ -111,38 +115,28 @@ export function UserProfileForm({ userProfile, onSave }: UserProfileFormProps) {
       async (position) => {
         const { latitude, longitude } = position.coords;
         // Simple reverse geocoding to get city name
-        // A real app would use a more robust service
         try {
           const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
           const data = await response.json();
           const city = data.address.city || data.address.town || data.address.village || 'Unknown location';
           setValue('location.city', city, { shouldDirty: true });
+          setValue('location.lat', latitude, { shouldDirty: true });
+          setValue('location.lon', longitude, { shouldDirty: true });
         } catch (error) {
           console.error("Error fetching city name:", error);
-          // Handle error, maybe show a toast
         } finally {
           setIsDetecting(false);
         }
       },
       (error) => {
         console.error("Geolocation error:", error);
-        // Handle error, maybe show a toast
         setIsDetecting(false);
       }
     );
   };
 
   const onSubmit = (data: ProfileFormValues) => {
-    // A real implementation would geocode the city to get lat/lon
-    const submissionData: Partial<UserProfile> = {
-      ...data,
-      location: {
-        city: data.location.city,
-        lat: 0, // Placeholder
-        lon: 0, // Placeholder
-      },
-    };
-    onSave(submissionData);
+    onSave(data);
   };
   
   const renderTimeSelector = (name: keyof ProfileFormValues['routine']) => (
@@ -168,7 +162,7 @@ export function UserProfileForm({ userProfile, onSave }: UserProfileFormProps) {
   
   const renderSensitivitySelector = (name: keyof ProfileFormValues['sensitivities'], label: string, explanation: string) => (
      <div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 mb-2">
            <Label>{label}</Label>
            <TooltipProvider>
               <Tooltip>

@@ -20,14 +20,16 @@ export default function ProfilePage() {
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userProfileRef);
 
   const handleSaveProfile = (data: Partial<UserProfile>) => {
-    if (!userProfileRef) return;
-    const profileData: UserProfile = {
-      id: user!.uid,
-      location: data.location || { city: '', lat: 0, lon: 0 },
-      routine: data.routine || { morningCommuteStart: '08:00', workHoursStart: '09:00', lunchStart: '12:00', eveningCommuteStart: '17:00' },
-      commuteType: data.commuteType || 'Drive',
-      sensitivities: data.sensitivities || { heat: 'Medium', aqi: 'Medium', uv: 'Medium' },
+    if (!userProfileRef || !user) return;
+    
+    // Construct the full profile object, ensuring the ID is always present.
+    const profileData: Partial<UserProfile> = {
+      ...data,
+      id: user.uid,
     };
+    
+    // Use the non-blocking update to save the data. `merge: true` ensures
+    // we only update the fields provided, without overwriting the entire document.
     setDocumentNonBlocking(userProfileRef, profileData, { merge: true });
   };
 
