@@ -6,7 +6,6 @@ import {
   Cloudy,
   GlassWater,
   Shirt,
-  Sunscreen as SunscreenIcon,
   Umbrella,
   CloudRain,
 } from "lucide-react";
@@ -46,6 +45,29 @@ const MaskIcon = (props: React.SVGProps<SVGSVGElement>) =>
         key: '2',
       }),
       createElement('path', { d: 'M16 12.5a2.5 2.5 0 1 1-5 0', key: '3' }),
+    ]
+  );
+
+const SunscreenIcon = (props: React.SVGProps<SVGSVGElement>) =>
+  createElement(
+    'svg',
+    {
+      ...props,
+      xmlns: 'http://www.w3.org/2000/svg',
+      width: '24',
+      height: '24',
+      viewBox: '0 0 24 24',
+      fill: 'none',
+      stroke: 'currentColor',
+      strokeWidth: '2',
+      strokeLinecap: 'round',
+      strokeLinejoin: 'round',
+    },
+    [
+      createElement('path', { d: 'M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z', key: '1' }),
+      createElement('path', { d: 'M12 12a4 4 0 0 0-4 4h8a4 4 0 0 0-4-4z', key: '2' }),
+      createElement('path', { d: 'm14.5 10.5-5-5', key: '3' }),
+      createElement('path', { d: 'M12 8a2 2 0 0 1 2 2', key: '4' }),
     ]
   );
 
