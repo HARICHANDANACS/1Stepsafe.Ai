@@ -180,7 +180,7 @@ export function UserProfileForm({ form, onSave }: UserProfileFormProps) {
           name={name}
           control={control}
           render={({ field }) => (
-          <Select onValueChange={field.onChange} value={field.value}>
+          <Select onValueChange={field.onChange} value={field.value || ''}>
              <SelectTrigger>
                 <SelectValue placeholder="Select an option" />
              </SelectTrigger>
@@ -190,8 +190,8 @@ export function UserProfileForm({ form, onSave }: UserProfileFormProps) {
                    {option}
                 </SelectItem>
                 ))}
-             </SelectContent>
-          </Select>
+              </SelectContent>
+           </Select>
           )}
           />
     </div>

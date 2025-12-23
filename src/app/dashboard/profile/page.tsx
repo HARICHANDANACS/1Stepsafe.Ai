@@ -13,7 +13,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { useForm, type UseFormReturn } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useEffect } from 'react';
@@ -37,9 +37,9 @@ const formSchema = z.object({
     uv: z.enum(['Low', 'Medium', 'High']),
   }),
   healthProfile: z.object({
-    ageRange: z.enum(['18-29', '30-49', '50-64', '65+']).optional(),
-    skinType: z.enum(['Very Fair', 'Fair', 'Medium', 'Olive', 'Brown', 'Black']).optional(),
-    respiratoryHealth: z.enum(['Good', 'Moderate', 'Sensitive']).optional(),
+    ageRange: z.enum(['18-29', '30-49', '50-64', '65+']).optional().or(z.literal('')),
+    skinType: z.enum(['Very Fair', 'Fair', 'Medium', 'Olive', 'Brown', 'Black']).optional().or(z.literal('')),
+    respiratoryHealth: z.enum(['Good', 'Moderate', 'Sensitive']).optional().or(z.literal('')),
   }).optional(),
 });
 
@@ -116,7 +116,7 @@ export default function ProfilePage() {
               </CardHeader>
               <CardContent>
                 <UserProfileForm
-                  form={form as UseFormReturn<any>}
+                  form={form}
                   onSave={handleSaveProfile}
                 />
               </CardContent>
