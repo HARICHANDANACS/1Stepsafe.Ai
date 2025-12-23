@@ -12,7 +12,8 @@ import { AdvisoryStep } from '@/components/steps/advisory-step';
 import { analyzeRisks } from '@/lib/risk-engine';
 import type { UserInput, ClimateData, RiskProfile } from '@/lib/data';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useForm } from 'react-hook-form';
+import { useForm, type UseFormReturn } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 
 const TOTAL_STEPS = 5;
@@ -36,12 +37,26 @@ async function fetchClimateData(city: string): Promise<ClimateData> {
   };
 }
 
+const formSchema = z.object({
+  city: z.string().min(2, {
+    message: 'City must be at least 2 characters.',
+  }),
+  ageGroup: z.enum(['Child', 'Adult', 'Elderly']).optional(),
+  activityLevel: z.enum(['Low', 'Medium', 'High']).optional(),
+});
+
+
 export default function CheckPage() {
   const [currentStep, setCurrentStep] = useState(1);
   const [userInput, setUserInput] = useState<UserInput | null>(null);
   const [riskProfile, setRiskProfile] = useState<RiskProfile | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const form = useForm(); // Form is managed within LocationStep, but we need to trigger it from StepWrapper
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      city: '',
+    },
+  });
 
   const handleLocationSubmit = async (data: UserInput) => {
     setIsLoading(true);
@@ -53,11 +68,12 @@ export default function CheckPage() {
     setCurrentStep(2);
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (currentStep === 1) {
-      // Trigger form submission inside LocationStep from here
-      // The form's `onSubmit` will call `handleLocationSubmit`
-      form.handleSubmit(handleLocationSubmit)();
+      const isValid = await form.trigger();
+      if (isValid) {
+        handleLocationSubmit(form.getValues());
+      }
     } else if (currentStep < TOTAL_STEPS) {
       setCurrentStep(prev => prev + 1);
     }
@@ -73,10 +89,11 @@ export default function CheckPage() {
     setCurrentStep(1);
     setUserInput(null);
     setRiskProfile(null);
+    form.reset();
   };
 
   const renderStepContent = () => {
-    if (isLoading) {
+    if (isLoading && currentStep === 1) {
       return (
          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {[...Array(5)].map((_, i) => (
@@ -98,7 +115,7 @@ export default function CheckPage() {
 
     switch (currentStep) {
       case 1:
-        return <LocationStep onSubmit={handleLocationSubmit} isLoading={isLoading} />;
+        return <LocationStep form={form} isLoading={isLoading} />;
       case 2:
         return riskProfile && <DashboardStep riskProfile={riskProfile} />;
       case 3:

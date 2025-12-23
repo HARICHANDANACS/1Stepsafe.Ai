@@ -34,7 +34,7 @@ export default function Home() {
       </main>
       <footer className="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <p className="text-center text-xs text-muted-foreground">
-          Informational guidance only. Not a substitute for professional medical advice.
+          &copy; {new Date().getFullYear()} StepSafe AI. All Rights Reserved.
         </p>
       </footer>
     </div>

@@ -1,7 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm, type UseFormReturn } from 'react-hook-form';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -35,38 +34,59 @@ const formSchema = z.object({
 });
 
 type LocationStepProps = {
-  onSubmit: (data: UserInput) => void;
+  form: UseFormReturn<z.infer<typeof formSchema>>;
   isLoading: boolean;
 };
 
-export function LocationStep({ onSubmit, isLoading }: LocationStepProps) {
+export function LocationStep({ form, isLoading }: LocationStepProps) {
   const [isDetecting, setIsDetecting] = useState(false);
   const { toast } = useToast();
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      city: '',
-    },
-  });
-
-  function handleFormSubmit(values: z.infer<typeof formSchema>) {
-    onSubmit(values as UserInput);
-  }
-
   const handleDetectLocation = () => {
     setIsDetecting(true);
-    // This is a mock detection. In a real app, you would use navigator.geolocation
-    // and a reverse geocoding service.
-    setTimeout(() => {
-      const mockCity = 'New York';
-      form.setValue('city', mockCity);
+    if (!navigator.geolocation) {
       toast({
-        title: 'Location Detected',
-        description: `Your location has been set to ${mockCity}.`,
+        variant: "destructive",
+        title: "Geolocation is not supported",
+        description: "Your browser does not support geolocation.",
       });
       setIsDetecting(false);
-    }, 1500);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        // In a real app, you would use a reverse geocoding service to get the city from coordinates.
+        // For this demo, we'll mock it.
+        const mockCity = 'New York';
+        form.setValue('city', mockCity);
+        toast({
+          title: 'Location Detected',
+          description: `Your location has been set to ${mockCity}.`,
+        });
+        setIsDetecting(false);
+      },
+      (error) => {
+        let errorMessage = "An unknown error occurred.";
+        switch(error.code) {
+            case error.PERMISSION_DENIED:
+                errorMessage = "You denied the request for Geolocation.";
+                break;
+            case error.POSITION_UNAVAILABLE:
+                errorMessage = "Location information is unavailable.";
+                break;
+            case error.TIMEOUT:
+                errorMessage = "The request to get user location timed out.";
+                break;
+        }
+        toast({
+          variant: "destructive",
+          title: 'Location Detection Failed',
+          description: errorMessage,
+        });
+        setIsDetecting(false);
+      }
+    );
   };
 
   return (
@@ -76,7 +96,7 @@ export function LocationStep({ onSubmit, isLoading }: LocationStepProps) {
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-8">
+          <form className="space-y-8">
             <div className="space-y-4">
               <FormField
                 control={form.control}
@@ -92,7 +112,7 @@ export function LocationStep({ onSubmit, isLoading }: LocationStepProps) {
                         type="button"
                         variant="outline"
                         onClick={handleDetectLocation}
-                        disabled={isDetecting}
+                        disabled={isDetecting || isLoading}
                       >
                         <MapPin className="mr-2 h-4 w-4" />
                         {isDetecting ? 'Detecting...' : 'Auto-detect'}
@@ -111,9 +131,9 @@ export function LocationStep({ onSubmit, isLoading }: LocationStepProps) {
                   name="ageGroup"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Age Group (Optional)</FormLabel>
-                      <Select
+                      <FormLabel>Age Group (Optional)</FormLabel>                      <Select
                         onValueChange={field.onChange}
+                        value={field.value}
                         defaultValue={field.value}
                       >
                         <FormControl>
@@ -138,6 +158,7 @@ export function LocationStep({ onSubmit, isLoading }: LocationStepProps) {
                       <FormLabel>Activity Level (Optional)</FormLabel>
                       <Select
                         onValueChange={field.onChange}
+                        value={field.value}
                         defaultValue={field.value}
                       >
                         <FormControl>
