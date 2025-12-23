@@ -137,9 +137,9 @@ export default function CheckPage() {
   const stepConfig = [
     { title: "Location and Details", description: "First, let's get some basic information to tailor your safety advisory." },
     { title: "Risk Dashboard", description: `Here is the current outdoor safety outlook for ${userInput?.city || ''}.` },
-    { title: "Safety Checklist", description: "A personalized checklist to help you prepare before you head out." },
-    { title: "Safe Time Windows", description: "Plan your activities during safer periods to minimize exposure to risks." },
-    { title: "Final Advisory", description: "A summary of today's conditions and our final recommendations for you." }
+    { title: "Safety Checklist", description: "A personalized checklist to help you prepare." },
+    { title: "Safe Time Windows", description: "Plan your activities during safer periods to minimize risks." },
+    { title: "Your AI-Powered Advisory", description: "A summary of today's conditions and our final recommendations." }
   ];
 
   const currentConfig = stepConfig[currentStep - 1];
