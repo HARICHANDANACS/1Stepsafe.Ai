@@ -1,4 +1,3 @@
-'use server';
 import { z } from 'zod';
 
 export const YesNoSchema = z.enum(['Yes', 'No']);
