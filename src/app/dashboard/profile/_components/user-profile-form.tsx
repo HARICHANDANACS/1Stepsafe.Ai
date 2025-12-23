@@ -1,8 +1,6 @@
 'use client';
 
-import { useForm, Controller, UseFormReset } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
+import { useForm, Controller, UseFormReturn } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,7 +11,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import type { UserProfile, CommuteType, ClimateSensitivity } from '@/lib/data';
+import type {
+  CommuteType,
+  ClimateSensitivity,
+  AgeRange,
+  SkinType,
+  RespiratoryHealth,
+} from '@/lib/data';
 import { useEffect, useState } from 'react';
 import { Info, LocateFixed } from 'lucide-react';
 import {
@@ -22,33 +26,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-
-const formSchema = z.object({
-  location: z.object({
-    city: z.string().min(1, 'City is required'),
-    lat: z.number().optional(),
-    lon: z.number().optional(),
-  }),
-  routine: z.object({
-    morningCommuteStart: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
-    workHoursStart: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
-    lunchStart: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
-    eveningCommuteStart: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
-  }),
-  commuteType: z.enum(['Walk', 'Bike', 'Public Transport', 'Drive']),
-  sensitivities: z.object({
-    heat: z.enum(['Low', 'Medium', 'High']),
-    aqi: z.enum(['Low', 'Medium', 'High']),
-    uv: z.enum(['Low', 'Medium', 'High']),
-  }),
-});
-
-type ProfileFormValues = z.infer<typeof formSchema>;
+import { Separator } from '@/components/ui/separator';
 
 interface UserProfileFormProps {
-  userProfile: UserProfile | null;
-  onSave: (data: ProfileFormValues) => void;
-  reset: UseFormReset<ProfileFormValues>;
+  form: UseFormReturn<any>;
+  onSave: (data: any) => void;
 }
 
 const SENSITIVITY_LEVELS: ClimateSensitivity[] = ['Low', 'Medium', 'High'];
@@ -58,6 +40,10 @@ const COMMUTE_TYPES: CommuteType[] = [
   'Public Transport',
   'Drive',
 ];
+const AGE_RANGES: AgeRange[] = ['18-29', '30-49', '50-64', '65+'];
+const SKIN_TYPES: SkinType[] = ['Very Fair', 'Fair', 'Medium', 'Olive', 'Brown', 'Black'];
+const RESPIRATORY_HEALTHS: RespiratoryHealth[] = ['Good', 'Moderate', 'Sensitive'];
+
 
 // Generate time options in 30-minute increments
 const generateTimeOptions = () => {
@@ -73,7 +59,7 @@ const generateTimeOptions = () => {
 };
 const timeOptions = generateTimeOptions();
 
-export function UserProfileForm({ userProfile, onSave, reset }: UserProfileFormProps) {
+export function UserProfileForm({ form, onSave }: UserProfileFormProps) {
   const [isDetecting, setIsDetecting] = useState(false);
   const {
     register,
@@ -81,33 +67,7 @@ export function UserProfileForm({ userProfile, onSave, reset }: UserProfileFormP
     control,
     setValue,
     formState: { errors, isSubmitting, isDirty },
-  } = useForm<ProfileFormValues>({
-    resolver: zodResolver(formSchema),
-  });
-
-  useEffect(() => {
-    if (userProfile) {
-      reset({
-        location: {
-          city: userProfile.location?.city || '',
-          lat: userProfile.location?.lat,
-          lon: userProfile.location?.lon,
-        },
-        routine: userProfile.routine || {
-          morningCommuteStart: '08:00',
-          workHoursStart: '09:00',
-          lunchStart: '12:00',
-          eveningCommuteStart: '17:00',
-        },
-        commuteType: userProfile.commuteType || 'Drive',
-        sensitivities: userProfile.sensitivities || {
-          heat: 'Medium',
-          aqi: 'Medium',
-          uv: 'Medium',
-        },
-      });
-    }
-  }, [userProfile, reset]);
+  } = form;
 
   const handleDetectLocation = () => {
     setIsDetecting(true);
@@ -116,51 +76,56 @@ export function UserProfileForm({ userProfile, onSave, reset }: UserProfileFormP
         const { latitude, longitude } = position.coords;
         // Simple reverse geocoding to get city name
         try {
-          const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
+          );
           const data = await response.json();
-          const city = data.address.city || data.address.town || data.address.village || 'Unknown location';
+          const city =
+            data.address.city ||
+            data.address.town ||
+            data.address.village ||
+            'Unknown location';
           setValue('location.city', city, { shouldDirty: true });
           setValue('location.lat', latitude, { shouldDirty: true });
           setValue('location.lon', longitude, { shouldDirty: true });
         } catch (error) {
-          console.error("Error fetching city name:", error);
+          console.error('Error fetching city name:', error);
         } finally {
           setIsDetecting(false);
         }
       },
       (error) => {
-        console.error("Geolocation error:", error);
+        console.error('Geolocation error:', error);
         setIsDetecting(false);
       }
     );
   };
 
-  const onSubmit = (data: ProfileFormValues) => {
-    onSave(data);
-  };
-  
-  const renderTimeSelector = (name: keyof ProfileFormValues['routine']) => (
-     <Controller
-        name={`routine.${name}`}
-        control={control}
-        render={({ field }) => (
-          <Select onValueChange={field.onChange} defaultValue={field.value}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select a time" />
-            </SelectTrigger>
-            <SelectContent className="max-h-60">
-              {timeOptions.map((time) => (
-                <SelectItem key={time} value={time}>
-                  {time}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
-      />
+  const renderTimeSelector = (name: string, label: string) => (
+    <div>
+      <Label htmlFor={name}>{label}</Label>
+       <Controller
+          name={name}
+          control={control}
+          render={({ field }) => (
+            <Select onValueChange={field.onChange} value={field.value}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a time" />
+              </SelectTrigger>
+              <SelectContent className="max-h-60">
+                {timeOptions.map((time) => (
+                  <SelectItem key={time} value={time}>
+                    {time}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        />
+    </div>
   );
   
-  const renderSensitivitySelector = (name: keyof ProfileFormValues['sensitivities'], label: string, explanation: string) => (
+  const renderSensitivitySelector = (name: string, label: string, explanation: string) => (
      <div>
         <div className="flex items-center gap-2 mb-2">
            <Label>{label}</Label>
@@ -176,10 +141,10 @@ export function UserProfileForm({ userProfile, onSave, reset }: UserProfileFormP
            </TooltipProvider>
         </div>
         <Controller
-           name={`sensitivities.${name}`}
+           name={name}
            control={control}
            render={({ field }) => (
-           <Select onValueChange={field.onChange} defaultValue={field.value}>
+           <Select onValueChange={field.onChange} value={field.value}>
               <SelectTrigger>
                  <SelectValue placeholder="Select level" />
               </SelectTrigger>
@@ -196,9 +161,45 @@ export function UserProfileForm({ userProfile, onSave, reset }: UserProfileFormP
      </div>
   );
 
+  const renderHealthSelector = (name: string, label: string, explanation: string, options: string[]) => (
+    <div>
+       <div className="flex items-center gap-2 mb-2">
+          <Label>{label}</Label>
+          <TooltipProvider>
+             <Tooltip>
+                <TooltipTrigger asChild>
+                   <Info className="h-4 w-4 text-muted-foreground" />
+                </TooltipTrigger>
+                <TooltipContent>
+                   <p className="max-w-xs">{explanation}</p>
+                </TooltipContent>
+             </Tooltip>
+          </TooltipProvider>
+       </div>
+       <Controller
+          name={name}
+          control={control}
+          render={({ field }) => (
+          <Select onValueChange={field.onChange} value={field.value}>
+             <SelectTrigger>
+                <SelectValue placeholder="Select an option" />
+             </SelectTrigger>
+             <SelectContent>
+                {options.map((option) => (
+                <SelectItem key={option} value={option}>
+                   {option}
+                </SelectItem>
+                ))}
+             </SelectContent>
+          </Select>
+          )}
+          />
+    </div>
+ );
+
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+    <form onSubmit={handleSubmit(onSave)} className="space-y-8">
       <div className="space-y-4">
         <h3 className="text-lg font-medium">Location</h3>
         <div className="grid grid-cols-1 gap-4">
@@ -216,38 +217,30 @@ export function UserProfileForm({ userProfile, onSave, reset }: UserProfileFormP
             </div>
             {errors.location?.city && (
               <p className="text-sm text-destructive">
-                {errors.location.city.message}
+                {(errors.location as any).city.message}
               </p>
             )}
           </div>
         </div>
       </div>
 
+      <Separator />
+
       <div className="space-y-4">
         <h3 className="text-lg font-medium">Daily Routine</h3>
         <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="morningCommuteStart">Morning Commute</Label>
-            {renderTimeSelector('morningCommuteStart')}
-          </div>
-          <div>
-            <Label htmlFor="workHoursStart">Work Day Starts</Label>
-            {renderTimeSelector('workHoursStart')}
-          </div>
-          <div>
-            <Label htmlFor="lunchStart">Lunch Break</Label>
-            {renderTimeSelector('lunchStart')}
-          </div>
-          <div>
-            <Label htmlFor="eveningCommuteStart">Evening Commute</Label>
-            {renderTimeSelector('eveningCommuteStart')}
-          </div>
+          {renderTimeSelector('routine.morningCommuteStart', 'Morning Commute')}
+          {renderTimeSelector('routine.workHoursStart', 'Work Day Starts')}
+          {renderTimeSelector('routine.lunchStart', 'Lunch Break')}
+          {renderTimeSelector('routine.eveningCommuteStart', 'Evening Commute')}
         </div>
       </div>
 
+      <Separator />
+
       <div className="space-y-4">
-        <h3 className="text-lg font-medium">Commute & Sensitivities</h3>
-        <div className="grid grid-cols-1 gap-4">
+        <h3 className="text-lg font-medium">Commute & Climate Sensitivities</h3>
+        <div className="grid grid-cols-1 gap-6">
           <div>
             <Label>Primary Commute</Label>
             <Controller
@@ -256,7 +249,7 @@ export function UserProfileForm({ userProfile, onSave, reset }: UserProfileFormP
               render={({ field }) => (
                 <Select
                   onValueChange={field.onChange}
-                  defaultValue={field.value}
+                  value={field.value}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select commute type" />
@@ -273,13 +266,22 @@ export function UserProfileForm({ userProfile, onSave, reset }: UserProfileFormP
             />
           </div>
         </div>
+         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+           {renderSensitivitySelector( 'sensitivities.heat', 'Heat Sensitivity', 'How much hot weather affects your well-being and ability to function.' )}
+           {renderSensitivitySelector( 'sensitivities.aqi', 'Air Quality (AQI) Sensitivity', 'How sensitive you are to pollutants and particles in the air, which can affect breathing and overall health.' )}
+           {renderSensitivitySelector('sensitivities.uv', 'UV Sensitivity', 'How easily your skin reacts to sun exposure. Higher sensitivity means a greater need for sun protection.')}
+        </div>
       </div>
 
+      <Separator />
+
       <div className="space-y-4">
+        <h3 className="text-lg font-medium">Personal Health Profile (Optional)</h3>
+         <p className="text-sm text-muted-foreground">Providing this information allows for more tailored and accurate recommendations.</p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-           {renderSensitivitySelector( 'heat', 'Heat Sensitivity', 'How much hot weather affects your well-being and ability to function.' )}
-           {renderSensitivitySelector( 'aqi', 'Air Quality (AQI) Sensitivity', 'How sensitive you are to pollutants and particles in the air, which can affect breathing and overall health.' )}
-           {renderSensitivitySelector('uv', 'UV Sensitivity', 'How easily your skin reacts to sun exposure. Higher sensitivity means a greater need for sun protection.')}
+           {renderHealthSelector( 'healthProfile.ageRange', 'Age Range', 'Age can influence sensitivity to heat and other environmental factors.', AGE_RANGES )}
+           {renderHealthSelector( 'healthProfile.skinType', 'Skin Type (Fitzpatrick Scale)', 'Helps determine your skin\'s sensitivity to UV radiation. Type I (Very Fair) burns easily, while Type VI (Black) is least sensitive.', SKIN_TYPES )}
+           {renderHealthSelector('healthProfile.respiratoryHealth', 'Respiratory Health', 'If you have conditions like asthma, your sensitivity to air quality changes may be higher.', RESPIRATORY_HEALTHS)}
         </div>
       </div>
 

@@ -2,6 +2,10 @@ import type { LucideIcon } from 'lucide-react';
 
 export type ClimateSensitivity = 'Low' | 'Medium' | 'High';
 export type CommuteType = 'Walk' | 'Bike' | 'Public Transport' | 'Drive';
+export type AgeRange = '18-29' | '30-49' | '50-64' | '65+';
+export type SkinType = 'Very Fair' | 'Fair' | 'Medium' | 'Olive' | 'Brown' | 'Black';
+export type RespiratoryHealth = 'Good' | 'Moderate' | 'Sensitive';
+
 
 export type DailyRoutine = {
   morningCommuteStart: string; // "HH:MM"
@@ -24,6 +28,11 @@ export type UserProfile = {
     aqi: ClimateSensitivity;
     uv: ClimateSensitivity;
   };
+  healthProfile?: {
+    ageRange?: AgeRange;
+    skinType?: SkinType;
+    respiratoryHealth?: RespiratoryHealth;
+  }
 };
 
 export type ClimateData = {
