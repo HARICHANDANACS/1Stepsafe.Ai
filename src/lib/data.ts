@@ -16,7 +16,7 @@ export type DailyRoutine = {
 
 export type UserProfile = {
   id: string; // Firebase Auth UID
-  name: string;
+  name?: string;
   location: {
     city: string;
     lat?: number;
@@ -50,9 +50,7 @@ export type ClimateData = {
 export type LifePhase =
   | 'Morning Commute'
   | 'Work Hours'
-  | 'Lunch'
-  | 'Evening Commute'
-  | 'Home Recovery';
+  | 'Evening Commute';
 
 export type RiskLevel = 'Low' | 'Medium' | 'High' | 'Extreme';
 
@@ -85,3 +83,21 @@ export type DailySummary = {
         isSafe: boolean;
     }[];
 };
+
+export type PhaseGuidance = {
+  phase: LifePhase;
+  startTime: string; // "HH:MM"
+  endTime: string; // "HH:MM"
+  risks: {
+    heatRisk: RiskLevel;
+    uvRisk: RiskLevel;
+    aqiRisk: RiskLevel;
+    rainExposure: RiskLevel;
+  };
+  recommendations: string[];
+  summary: string;
+};
+
+export type DailyGuidance = {
+  phases: PhaseGuidance[];
+}

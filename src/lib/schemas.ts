@@ -38,3 +38,30 @@ export const ClimateDataSchema = z.object({
   aqi: z.number(),
   rainProbability: z.number(),
 });
+
+
+export const LifePhaseSchema = z.enum([
+  'Morning Commute',
+  'Work Hours',
+  'Evening Commute',
+]);
+
+export const RiskLevelSchema = z.enum(['Low', 'Medium', 'High', 'Extreme']);
+
+export const PhaseGuidanceSchema = z.object({
+  phase: LifePhaseSchema,
+  startTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
+  endTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
+  risks: z.object({
+    heatRisk: RiskLevelSchema,
+    uvRisk: RiskLevelSchema,
+    aqiRisk: RiskLevelSchema,
+    rainExposure: RiskLevelSchema,
+  }),
+  recommendations: z.array(z.string()).describe('A checklist of 2-4 short, actionable recommendations for this phase.'),
+  summary: z.string().describe('A concise, 1-2 sentence summary of the key advice for this phase.'),
+});
+
+export const DailyGuidanceSchema = z.object({
+  phases: z.array(PhaseGuidanceSchema),
+});

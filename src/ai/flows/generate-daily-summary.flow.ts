@@ -45,7 +45,7 @@ export async function generateDailySummary(input: GenerateDailySummaryInput): Pr
 const prompt = ai.definePrompt({
   name: 'dailySummaryPrompt',
   input: {
-      schema: GenerateDailySummaryInputSchema.extend({
+      schema: GenerateDailysummaryInputSchema.extend({
         tempChange: z.number(),
         aqiChange: z.number(),
       }),
