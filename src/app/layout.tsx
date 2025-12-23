@@ -1,15 +1,14 @@
 import type {Metadata} from 'next';
 import './globals.css';
 import { Inter } from 'next/font/google';
-import { Toaster } from '@/components/ui/toaster';
 import { cn } from '@/lib/utils';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
 export const metadata: Metadata = {
-  title: 'StepSafe AI - Your Climate-Aware Safety Companion',
+  title: 'StepSafe AI - Your Climate-Health Co-pilot',
   description:
-    'Personalized outdoor safety guidance based on real-time weather and air quality.',
+    'Personalized climate-health guidance based on your routine, your health, and real-time environmental data.',
 };
 
 export default function RootLayout({
@@ -31,9 +30,8 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className={cn('font-body antialiased', inter.variable)}>
+      <body className={cn('min-h-screen bg-background font-sans antialiased', inter.variable)}>
         {children}
-        <Toaster />
       </body>
     </html>
   );

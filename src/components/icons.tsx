@@ -22,7 +22,7 @@ export const StepSafeLogo = ({ className }: { className?: string }) => (
         fill="currentColor"
       />
     </svg>
-    <span className="font-bold text-lg text-foreground font-headline tracking-tight">
+    <span className="font-bold text-lg text-foreground tracking-tight">
       StepSafe AI
     </span>
   </div>

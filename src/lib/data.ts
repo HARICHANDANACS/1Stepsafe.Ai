@@ -1,12 +1,29 @@
 import type { LucideIcon } from "lucide-react";
 
-export type AgeGroup = "Child" | "Adult" | "Elderly";
-export type ActivityLevel = "Low" | "Medium" | "High";
+export type ClimateSensitivity = "Low" | "Medium" | "High";
+export type CommuteType = "Walk" | "Bike" | "Public Transport" | "Drive";
 
-export type UserInput = {
-  city: string;
-  ageGroup?: AgeGroup;
-  activityLevel?: ActivityLevel;
+export type DailyRoutine = {
+  morningCommuteStart: string; // "HH:MM"
+  workHoursStart: string;
+  lunchStart: string;
+  eveningCommuteStart: string;
+};
+
+export type UserProfile = {
+  id: string; // Firebase Auth UID
+  location: {
+    city: string;
+    lat: number;
+    lon: number;
+  };
+  routine: DailyRoutine;
+  commuteType: CommuteType;
+  sensitivities: {
+    heat: ClimateSensitivity;
+    aqi: ClimateSensitivity;
+    uv: ClimateSensitivity;
+  };
 };
 
 export type ClimateData = {
@@ -16,6 +33,8 @@ export type ClimateData = {
   aqi: number;
   rainProbability: number; // in percentage
 };
+
+export type LifePhase = "Morning Commute" | "Work Hours" | "Lunch" | "Evening Commute" | "Home Recovery";
 
 export type RiskLevel = "Low" | "Medium" | "High" | "Extreme";
 
@@ -32,17 +51,4 @@ export type RiskProfile = {
   aqiRisk: Risk;
   humidityDiscomfort: Risk;
   rainExposure: Risk;
-};
-
-export type ChecklistItem = {
-  id: string;
-  recommendation: string;
-  details: string;
-  Icon: LucideIcon;
-};
-
-export type TimeWindow = {
-  period: string;
-  level: "Safer" | "Unsafe";
-  reason: string;
 };

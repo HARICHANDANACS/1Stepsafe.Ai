@@ -4,72 +4,13 @@ import {
   Wind,
   Droplets,
   Cloudy,
-  GlassWater,
-  Shirt,
-  Umbrella,
-  CloudRain,
 } from "lucide-react";
 import type {
   ClimateData,
-  UserInput,
   RiskProfile,
   Risk,
   RiskLevel,
-  ChecklistItem,
-  TimeWindow,
 } from "./data";
-import {createElement} from 'react';
-
-const MaskIcon = (props: React.SVGProps<SVGSVGElement>) =>
-  createElement(
-    'svg',
-    {
-      ...props,
-      xmlns: 'http://www.w3.org/2000/svg',
-      width: '24',
-      height: '24',
-      viewBox: '0 0 24 24',
-      fill: 'none',
-      stroke: 'currentColor',
-      strokeWidth: '2',
-      strokeLinecap: 'round',
-      strokeLinejoin: 'round',
-    },
-    [
-      createElement('path', {
-        d: 'M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z',
-        key: '1',
-      }),
-      createElement('path', {
-        d: 'M12 12a4.002 4.002 0 0 0-4 4h8a4.002 4.002 0 0 0-4-4z',
-        key: '2',
-      }),
-      createElement('path', { d: 'M16 12.5a2.5 2.5 0 1 1-5 0', key: '3' }),
-    ]
-  );
-
-const SunscreenIcon = (props: React.SVGProps<SVGSVGElement>) =>
-  createElement(
-    'svg',
-    {
-      ...props,
-      xmlns: 'http://www.w3.org/2000/svg',
-      width: '24',
-      height: '24',
-      viewBox: '0 0 24 24',
-      fill: 'none',
-      stroke: 'currentColor',
-      strokeWidth: '2',
-      strokeLinecap: 'round',
-      strokeLinejoin: 'round',
-    },
-    [
-      createElement('path', { d: 'M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z', key: '1' }),
-      createElement('path', { d: 'M12 12a4 4 0 0 0-4 4h8a4 4 0 0 0-4-4z', key: '2' }),
-      createElement('path', { d: 'm14.5 10.5-5-5', key: '3' }),
-      createElement('path', { d: 'M12 8a2 2 0 0 1 2 2', key: '4' }),
-    ]
-  );
 
 function getHeatRisk(temp: number, humidity: number): Risk {
   const heatIndex = -42.379 + 2.04901523 * temp + 10.14333127 * humidity - 0.22475541 * temp * humidity - 6.83783e-3 * temp * temp - 5.481717e-2 * humidity * humidity + 1.22874e-3 * temp * temp * humidity + 8.5282e-4 * temp * humidity * humidity - 1.99e-6 * temp * temp * humidity * humidity;
@@ -161,7 +102,7 @@ function getRainExposure(rainProbability: number): Risk {
   return { name: "Rain Exposure", level, explanation, Icon: Cloudy };
 }
 
-export function analyzeRisks(climateData: ClimateData, userInput?: UserInput): RiskProfile {
+export function analyzeRisks(climateData: ClimateData): RiskProfile {
   return {
     heatRisk: getHeatRisk(climateData.temperature, climateData.humidity),
     uvRisk: getUvRisk(climateData.uvIndex),
@@ -169,105 +110,4 @@ export function analyzeRisks(climateData: ClimateData, userInput?: UserInput): R
     humidityDiscomfort: getHumidityDiscomfort(climateData.humidity),
     rainExposure: getRainExposure(climateData.rainProbability),
   };
-}
-
-export function generateChecklist(riskProfile: RiskProfile): ChecklistItem[] {
-  const checklist: ChecklistItem[] = [];
-
-  // Water Intake
-  if (riskProfile.heatRisk.level === "Extreme" || riskProfile.heatRisk.level === "High") {
-    checklist.push({
-      id: "water",
-      recommendation: "Stay extra hydrated",
-      details: "Drink at least 3-4 liters of water throughout the day.",
-      Icon: GlassWater,
-    });
-  } else {
-    checklist.push({
-      id: "water",
-      recommendation: "Standard hydration",
-      details: "Aim for 2 liters of water today.",
-      Icon: GlassWater,
-    });
-  }
-
-  // Clothing
-  if (riskProfile.heatRisk.level === "Extreme" || riskProfile.heatRisk.level === "High") {
-    checklist.push({
-      id: "clothing",
-      recommendation: "Wear light, breathable clothing",
-      details: "Choose loose-fitting, light-colored fabrics.",
-      Icon: Shirt,
-    });
-  } else {
-     checklist.push({
-      id: "clothing",
-      recommendation: "Dress for comfort",
-      details: "Standard clothing is appropriate for today's temperature.",
-      Icon: Shirt,
-    });
-  }
-
-  // Sunscreen
-  if (riskProfile.uvRisk.level === "Extreme" || riskProfile.uvRisk.level === "High") {
-    checklist.push({
-      id: "sunscreen",
-      recommendation: "Apply SPF 30+ sunscreen",
-      details: "Reapply every 2 hours, especially if sweating.",
-      Icon: SunscreenIcon,
-    });
-  } else if (riskProfile.uvRisk.level === "Medium") {
-    checklist.push({
-      id: "sunscreen",
-      recommendation: "Consider using sunscreen",
-      details: "Sun protection is advisable, even on cloudy days.",
-      Icon: SunscreenIcon,
-    });
-  }
-
-  // Rain Gear
-  if (riskProfile.rainExposure.level === "High") {
-    checklist.push({
-      id: "rain",
-      recommendation: "Bring an umbrella or raincoat",
-      details: "Rain is highly likely today.",
-      Icon: CloudRain,
-    });
-  } else if (riskProfile.rainExposure.level === "Medium") {
-    checklist.push({
-        id: "rain",
-        recommendation: "Pack an umbrella",
-        details: "There's a chance of scattered showers.",
-        Icon: Umbrella,
-      });
-  }
-
-  // AQI Mask
-  if (riskProfile.aqiRisk.level === "Extreme" || riskProfile.aqiRisk.level === "High") {
-    checklist.push({
-      id: "mask",
-      recommendation: "Wear a high-quality mask (N95/KN95)",
-      details: "Limit outdoor time due to poor air quality.",
-      Icon: MaskIcon,
-    });
-  }
-
-  return checklist;
-}
-
-export function generateTimeWindows(riskProfile: RiskProfile): TimeWindow[] {
-    const windows: TimeWindow[] = [];
-
-    const isUvHigh = riskProfile.uvRisk.level === 'High' || riskProfile.uvRisk.level === 'Extreme';
-    const isHeatHigh = riskProfile.heatRisk.level === 'High' || riskProfile.heatRisk.level === 'Extreme';
-
-    if(isUvHigh || isHeatHigh) {
-        windows.push({ period: "11:00 AM - 4:00 PM", level: "Unsafe", reason: "Peak UV and heat levels. Best to stay indoors." });
-        windows.push({ period: "Before 11:00 AM", level: "Safer", reason: "Cooler temperatures and lower UV exposure." });
-        windows.push({ period: "After 4:00 PM", level: "Safer", reason: "Sun is less intense and temperatures start to drop." });
-    } else {
-        windows.push({ period: "All Day", level: "Safer", reason: "Conditions are favorable for outdoor activities throughout the day." });
-    }
-    
-    return windows.sort((a,b) => a.period.localeCompare(b.period));
 }
