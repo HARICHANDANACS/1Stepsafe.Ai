@@ -5,7 +5,7 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
+import { z } from 'zod';
 import type { UserProfile, ClimateData } from '@/lib/data';
 import { UserProfileSchema, ClimateDataSchema } from '@/lib/schemas';
 
@@ -93,7 +93,7 @@ Analyze the user's profile and today's climate data to generate a personalized s
     - Analyze the UV index and heat/humidity as the primary factors for safety.
     - The most dangerous window is almost always midday (e.g., 12:00-16:00) when UV and heat peak. Mark this as \`isSafe: false\`.
     - Early morning and late evening are usually safer. Mark these as \`isSafe: true\`.
-    - Create at least 3-4 distinct time windows. The windows should be contiguous and cover a 24-hour period.
+    - Create at least 3-4 distinct time windows. The windows must be contiguous and cover a 24-hour period. **IMPORTANT: The final window must end at "23:59", do not use "24:00".**
 
 4. **Set \`whatChanged\` values:**
     - This should already be provided as input. Just pass it through to the output.
