@@ -9,7 +9,6 @@ import {
   Sunscreen as SunscreenIcon,
   Umbrella,
   CloudRain,
-  Mask,
 } from "lucide-react";
 import type {
   ClimateData,
@@ -20,6 +19,35 @@ import type {
   ChecklistItem,
   TimeWindow,
 } from "./data";
+import {createElement} from 'react';
+
+const MaskIcon = (props: React.SVGProps<SVGSVGElement>) =>
+  createElement(
+    'svg',
+    {
+      ...props,
+      xmlns: 'http://www.w3.org/2000/svg',
+      width: '24',
+      height: '24',
+      viewBox: '0 0 24 24',
+      fill: 'none',
+      stroke: 'currentColor',
+      strokeWidth: '2',
+      strokeLinecap: 'round',
+      strokeLinejoin: 'round',
+    },
+    [
+      createElement('path', {
+        d: 'M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z',
+        key: '1',
+      }),
+      createElement('path', {
+        d: 'M12 12a4.002 4.002 0 0 0-4 4h8a4.002 4.002 0 0 0-4-4z',
+        key: '2',
+      }),
+      createElement('path', { d: 'M16 12.5a2.5 2.5 0 1 1-5 0', key: '3' }),
+    ]
+  );
 
 function getHeatRisk(temp: number, humidity: number): Risk {
   const heatIndex = -42.379 + 2.04901523 * temp + 10.14333127 * humidity - 0.22475541 * temp * humidity - 6.83783e-3 * temp * temp - 5.481717e-2 * humidity * humidity + 1.22874e-3 * temp * temp * humidity + 8.5282e-4 * temp * humidity * humidity - 1.99e-6 * temp * temp * humidity * humidity;
@@ -198,7 +226,7 @@ export function generateChecklist(riskProfile: RiskProfile): ChecklistItem[] {
       id: "mask",
       recommendation: "Wear a high-quality mask (N95/KN95)",
       details: "Limit outdoor time due to poor air quality.",
-      Icon: Mask,
+      Icon: MaskIcon,
     });
   }
 
