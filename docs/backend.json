@@ -37,16 +37,12 @@
               "type": "string",
               "format": "time"
             },
-            "lunchStart": {
-              "type": "string",
-              "format": "time"
-            },
             "eveningCommuteStart": {
               "type": "string",
               "format": "time"
             }
           },
-          "required": ["morningCommuteStart", "workHoursStart", "lunchStart", "eveningCommuteStart"]
+          "required": ["morningCommuteStart", "workHoursStart", "eveningCommuteStart"]
         },
         "commuteType": {
           "type": "string",
@@ -62,14 +58,10 @@
             },
             "aqi": {
               "type": "string",
-              "enum": ["Low", "Medium", "High"]
-            },
-            "uv": {
-              "type": "string",
-              "enum": ["Low", "Medium", "High"]
+              "enum": ["Yes", "No"]
             }
           },
-          "required": ["heat", "aqi", "uv"]
+          "required": ["heat", "aqi"]
         },
         "healthProfile": {
           "type": "object",

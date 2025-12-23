@@ -1,6 +1,5 @@
 'use client';
 
-import { Header } from '@/components/layout/header';
 import { useUser, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { UserProfileForm } from './_components/user-profile-form';
@@ -29,14 +28,12 @@ const formSchema = z.object({
   routine: z.object({
     morningCommuteStart: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
     workHoursStart: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
-    lunchStart: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
     eveningCommuteStart: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
   }),
   commuteType: z.enum(['Walk', 'Bike', 'Public Transport', 'Drive']),
   sensitivities: z.object({
     heat: z.enum(['Low', 'Medium', 'High']),
-    aqi: z.enum(['Low', 'Medium', 'High']),
-    uv: z.enum(['Low', 'Medium', 'High']),
+    aqi: z.enum(['Yes', 'No']),
   }),
   healthProfile: z.object({
     ageRange: z.enum(['18-29', '30-49', '50-64', '65+']).optional().or(z.literal('')),
@@ -67,11 +64,10 @@ export default function ProfilePage() {
       routine: {
         morningCommuteStart: '08:00',
         workHoursStart: '09:00',
-        lunchStart: '12:00',
         eveningCommuteStart: '17:00',
       },
       commuteType: 'Drive',
-      sensitivities: { heat: 'Medium', aqi: 'Medium', uv: 'Medium' },
+      sensitivities: { heat: 'Medium', aqi: 'No' },
       healthProfile: {
         ageRange: undefined,
         skinType: undefined,
@@ -95,7 +91,7 @@ export default function ProfilePage() {
     };
 
     setDocumentNonBlocking(userProfileRef, profileData, { merge: true });
-    form.reset(data); // Reset the form with the new data to update dirty state
+    form.reset(data); 
     toast.success('Your profile has been saved!');
     router.push('/dashboard');
   };
@@ -103,34 +99,33 @@ export default function ProfilePage() {
   const isLoading = isUserLoading || isProfileLoading;
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <Header />
-      <main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="max-w-3xl mx-auto">
-          {isLoading ? (
-            <p>Loading your profile...</p>
-          ) : user ? (
-            <Card>
-              <CardHeader>
-                <CardTitle>Your Personal Profile</CardTitle>
-                <CardDescription>
-                  This information helps StepSafe AI provide personalized
-                  climate-health guidance. It is saved securely and never
-                  shared.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <UserProfileForm
-                  form={form}
-                  onSave={handleSaveProfile}
-                />
-              </CardContent>
-            </Card>
-          ) : (
-            <p>Please log in to manage your profile.</p>
-          )}
+    <div className="mx-auto grid max-w-4xl flex-1 auto-rows-max gap-4">
+        <div className="flex items-center gap-4">
+            <h1 className="flex-1 shrink-0 whitespace-nowrap text-xl font-semibold tracking-tight sm:grow-0">
+                Your Personal Profile
+            </h1>
         </div>
-      </main>
+        {isLoading ? (
+        <p>Loading your profile...</p>
+        ) : user ? (
+        <Card>
+            <CardHeader>
+            <CardDescription>
+                This information helps StepSafe AI provide personalized
+                climate-health guidance. It is saved securely and never
+                shared.
+            </CardDescription>
+            </CardHeader>
+            <CardContent>
+            <UserProfileForm
+                form={form}
+                onSave={handleSaveProfile}
+            />
+            </CardContent>
+        </Card>
+        ) : (
+        <p>Please log in to manage your profile.</p>
+        )}
     </div>
   );
 }

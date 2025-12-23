@@ -1,29 +1,26 @@
 'use client';
 
-import { Header } from '@/components/layout/header';
 import { useUser, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
-import type { UserProfile, ClimateData, RiskProfile } from '@/lib/data';
+import type { UserProfile, DailySummary } from '@/lib/data';
 import { useEffect, useState } from 'react';
-import { getClimateDataForCity } from '@/lib/climate-service';
-import { analyzeRisks } from '@/lib/risk-engine';
-import { generateConciseSafetyAdvisory, GenerateConciseSafetyAdvisoryInput } from '@/ai/flows/generate-concise-safety-advisory.flow';
-import { RiskCard } from './_components/risk-card';
-import { AdvisoryCard } from './_components/advisory-card';
-import { Card } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from '@/components/ui/card';
+import { ArrowRight, Info } from 'lucide-react';
+import { getClimateDataForCity, getYesterdayClimateData } from '@/lib/climate-service';
+import { generateDailySummary } from '@/ai/flows/generate-daily-summary.flow';
+import { Skeleton } from '@/components/ui/skeleton';
+import { SafeUnsafeTimeWindows } from './_components/safe-unsafe-time-windows';
+import { WhatChangedToday } from './_components/what-changed-today';
+import { PersonalHealthRiskScore } from './_components/personal-health-risk-score';
 
-const MOCK_DELAY_MS = 800; // Simulate network latency
 
-export default function DashboardPage() {
+export default function DashboardOverviewPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
 
-  const [climateData, setClimateData] = useState<ClimateData | null>(null);
-  const [riskProfile, setRiskProfile] = useState<RiskProfile | null>(null);
-  const [advisory, setAdvisory] = useState<string | null>(null);
+  const [dailySummary, setDailySummary] = useState<DailySummary | null>(null);
   const [isDataLoading, setIsDataLoading] = useState(true);
 
   const userProfileRef = useMemoFirebase(() => {
@@ -38,115 +35,108 @@ export default function DashboardPage() {
     if (userProfile && userProfile.location) {
       const fetchData = async () => {
         setIsDataLoading(true);
-        setAdvisory(null); // Clear old advisory
 
-        // Simulate fetching data
-        await new Promise(resolve => setTimeout(resolve, MOCK_DELAY_MS));
+        const todayClimate = getClimateDataForCity(userProfile.location.city);
+        const yesterdayClimate = getYesterdayClimateData(userProfile.location.city);
 
-        const climate = getClimateDataForCity(userProfile.location.city);
-        setClimateData(climate);
-
-        const risks = analyzeRisks(climate);
-        setRiskProfile(risks);
-
-        // Prepare input for the AI flow
-        const advisoryInput: GenerateConciseSafetyAdvisoryInput = {
-            heatRisk: risks.heatRisk.level,
-            uvRisk: risks.uvRisk.level,
-            aqiRisk: risks.aqiRisk.level,
-            humidityDiscomfort: risks.humidityDiscomfort.level,
-            rainExposure: risks.rainExposure.level,
-        };
-
-        // Generate the advisory
         try {
-            const result = await generateConciseSafetyAdvisory(advisoryInput);
-            setAdvisory(result.advisory);
+          const result = await generateDailySummary({
+            userProfile,
+            todayClimate,
+            yesterdayClimate
+          });
+          setDailySummary(result);
         } catch (error) {
-            console.error("Error generating advisory:", error);
-            setAdvisory("Could not generate an advisory at this time. Please check your connection.");
+          console.error("Error generating daily summary:", error);
+        } finally {
+          setIsDataLoading(false);
         }
-
-
-        setIsDataLoading(false);
       };
 
       fetchData();
     } else if (!isProfileLoading && !userProfile) {
-      // If profile loading is finished and there's no profile
       setIsDataLoading(false);
     }
   }, [userProfile, isProfileLoading]);
 
   const isLoading = isUserLoading || isProfileLoading || isDataLoading;
 
-  const renderContent = () => {
-    if (isLoading) {
-      return (
-        <div className="space-y-6">
-          <Card className="p-6">
-            <Skeleton className="h-8 w-1/2 mb-4" />
-            <Skeleton className="h-6 w-3/4" />
-          </Card>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            <Skeleton className="h-40 rounded-lg" />
-            <Skeleton className="h-40 rounded-lg" />
-            <Skeleton className="h-40 rounded-lg" />
-            <Skeleton className="h-40 rounded-lg" />
-            <Skeleton className="h-40 rounded-lg" />
-          </div>
-        </div>
-      );
-    }
-
-    if (!user) {
-      return <p>Please log in to see your dashboard.</p>;
-    }
-
-    if (!userProfile?.location?.city) {
-      return (
-         <Card className="text-center p-8">
-            <h2 className="text-xl font-semibold mb-2">Welcome to StepSafe AI!</h2>
-            <p className="text-muted-foreground mb-6">
-               To get your personalized climate-health advisory, please complete your profile.
-            </p>
-            <Button asChild>
-               <Link href="/dashboard/profile">
-                  Complete Your Profile
-               </Link>
-            </Button>
-         </Card>
-      );
-    }
-
+  if (isLoading) {
     return (
-      <div className="space-y-6">
-        <AdvisoryCard
-          location={userProfile.location.city}
-          advisory={advisory}
-          isLoading={!advisory}
-        />
-        {riskProfile && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            <RiskCard risk={riskProfile.heatRisk} />
-            <RiskCard risk={riskProfile.uvRisk} />
-            <RiskCard risk={riskProfile.aqiRisk} />
-            <RiskCard risk={riskProfile.humidityDiscomfort} />
-            <RiskCard risk={riskProfile.rainExposure} />
-          </div>
-        )}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <Skeleton className="h-8 w-3/4" />
+            <Skeleton className="h-5 w-1/2" />
+          </CardHeader>
+          <CardContent className="space-y-4">
+             <Skeleton className="h-20 w-full" />
+             <Skeleton className="h-10 w-full" />
+          </CardContent>
+          <CardFooter>
+             <Skeleton className="h-10 w-48" />
+          </CardFooter>
+        </Card>
+        <Card>
+           <CardHeader>
+              <Skeleton className="h-8 w-full" />
+           </CardHeader>
+           <CardContent>
+              <Skeleton className="h-32 w-full" />
+           </CardContent>
+        </Card>
       </div>
     );
-  };
+  }
+
+  if (!userProfile?.location?.city) {
+    return (
+       <Card className="text-center p-8">
+          <h2 className="text-xl font-semibold mb-2">Welcome to StepSafe AI!</h2>
+          <p className="text-muted-foreground mb-6">
+             To get your personalized climate-health advisory, please complete your profile.
+          </p>
+          <Button asChild>
+             <Link href="/dashboard/profile">
+                Complete Your Profile
+             </Link>
+          </Button>
+       </Card>
+    );
+  }
+
+  if (!dailySummary) {
+    return (
+        <Card className="text-center p-8">
+            <h2 className="text-xl font-semibold mb-2">Could not generate summary</h2>
+            <p className="text-muted-foreground">There was an issue generating your daily climate-health summary. Please try again later.</p>
+        </Card>
+    )
+  }
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <Header />
-      <main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="max-w-4xl mx-auto">
-          {renderContent()}
+    <div className="grid auto-rows-max items-start gap-4 md:gap-8 lg:col-span-2">
+        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4">
+            <Card className="sm:col-span-2">
+                <CardHeader className="pb-3">
+                    <CardTitle>Your Daily Health Dashboard</CardTitle>
+                    <CardDescription className="max-w-lg text-balance leading-relaxed">
+                        {dailySummary.quickInsight}
+                    </CardDescription>
+                </CardHeader>
+                <CardFooter>
+                    <Button asChild>
+                        <Link href="/dashboard/guidance">View Today's Guidance <ArrowRight className="ml-2 h-4 w-4" /></Link>
+                    </Button>
+                </CardFooter>
+            </Card>
+            <PersonalHealthRiskScore score={dailySummary.personalHealthRiskScore} />
+            <WhatChangedToday 
+              tempChange={dailySummary.whatChanged.tempChange}
+              aqiChange={dailySummary.whatChanged.aqiChange}
+            />
         </div>
-      </main>
-    </div>
+        <SafeUnsafeTimeWindows safeWindows={dailySummary.safeWindows} />
+  </div>
   );
 }

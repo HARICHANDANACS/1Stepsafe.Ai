@@ -17,8 +17,9 @@ import type {
   AgeRange,
   SkinType,
   RespiratoryHealth,
+  YesNo,
 } from '@/lib/data';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Info, LocateFixed } from 'lucide-react';
 import {
   Tooltip,
@@ -33,7 +34,8 @@ interface UserProfileFormProps {
   onSave: (data: any) => void;
 }
 
-const SENSITIVITY_LEVELS: ClimateSensitivity[] = ['Low', 'Medium', 'High'];
+const HEAT_SENSITIVITY_LEVELS: ClimateSensitivity[] = ['Low', 'Medium', 'High'];
+const AQI_SENSITIVITY_LEVELS: YesNo[] = ['Yes', 'No'];
 const COMMUTE_TYPES: CommuteType[] = [
   'Walk',
   'Bike',
@@ -74,7 +76,6 @@ export function UserProfileForm({ form, onSave }: UserProfileFormProps) {
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const { latitude, longitude } = position.coords;
-        // Simple reverse geocoding to get city name
         try {
           const response = await fetch(
             `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
@@ -125,7 +126,7 @@ export function UserProfileForm({ form, onSave }: UserProfileFormProps) {
     </div>
   );
   
-  const renderSensitivitySelector = (name: string, label: string, explanation: string) => (
+  const renderSensitivitySelector = (name: string, label: string, explanation: string, levels: string[]) => (
      <div>
         <div className="flex items-center gap-2 mb-2">
            <Label>{label}</Label>
@@ -149,7 +150,7 @@ export function UserProfileForm({ form, onSave }: UserProfileFormProps) {
                  <SelectValue placeholder="Select level" />
               </SelectTrigger>
               <SelectContent>
-                 {SENSITIVITY_LEVELS.map((level) => (
+                 {levels.map((level) => (
                  <SelectItem key={level} value={level}>
                     {level}
                  </SelectItem>
@@ -231,7 +232,6 @@ export function UserProfileForm({ form, onSave }: UserProfileFormProps) {
         <div className="grid grid-cols-2 gap-4">
           {renderTimeSelector('routine.morningCommuteStart', 'Morning Commute')}
           {renderTimeSelector('routine.workHoursStart', 'Work Day Starts')}
-          {renderTimeSelector('routine.lunchStart', 'Lunch Break')}
           {renderTimeSelector('routine.eveningCommuteStart', 'Evening Commute')}
         </div>
       </div>
@@ -266,10 +266,9 @@ export function UserProfileForm({ form, onSave }: UserProfileFormProps) {
             />
           </div>
         </div>
-         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-           {renderSensitivitySelector( 'sensitivities.heat', 'Heat Sensitivity', 'How much hot weather affects your well-being and ability to function.' )}
-           {renderSensitivitySelector( 'sensitivities.aqi', 'Air Quality (AQI) Sensitivity', 'How sensitive you are to pollutants and particles in the air, which can affect breathing and overall health.' )}
-           {renderSensitivitySelector('sensitivities.uv', 'UV Sensitivity', 'How easily your skin reacts to sun exposure. Higher sensitivity means a greater need for sun protection.')}
+         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+           {renderSensitivitySelector( 'sensitivities.heat', 'Heat Sensitivity', 'How much hot weather affects your well-being and ability to function.', HEAT_SENSITIVITY_LEVELS )}
+           {renderSensitivitySelector( 'sensitivities.aqi', 'AQI Sensitivity', 'Answer "Yes" if you have any respiratory conditions or are sensitive to air pollution.', AQI_SENSITIVITY_LEVELS )}
         </div>
       </div>
 
@@ -286,7 +285,7 @@ export function UserProfileForm({ form, onSave }: UserProfileFormProps) {
       </div>
 
       <Button type="submit" disabled={isSubmitting || !isDirty}>
-        {isSubmitting ? 'Saving...' : 'Save Profile'}
+        {isSubmitting ? 'Saving...' : 'Save Profile & View Dashboard'}
       </Button>
     </form>
   );
