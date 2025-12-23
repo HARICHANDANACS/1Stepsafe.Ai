@@ -17,6 +17,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useEffect } from 'react';
+import toast from 'react-hot-toast';
+import { useRouter } from 'next/navigation';
 
 const formSchema = z.object({
   location: z.object({
@@ -48,6 +50,7 @@ type ProfileFormValues = z.infer<typeof formSchema>;
 export default function ProfilePage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
+  const router = useRouter();
 
   const userProfileRef = useMemoFirebase(() => {
     if (!user) return null;
@@ -93,6 +96,8 @@ export default function ProfilePage() {
 
     setDocumentNonBlocking(userProfileRef, profileData, { merge: true });
     form.reset(data); // Reset the form with the new data to update dirty state
+    toast.success('Your profile has been saved!');
+    router.push('/dashboard');
   };
 
   const isLoading = isUserLoading || isProfileLoading;
