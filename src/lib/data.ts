@@ -1,7 +1,7 @@
-import type { LucideIcon } from "lucide-react";
+import type { LucideIcon } from 'lucide-react';
 
-export type ClimateSensitivity = "Low" | "Medium" | "High";
-export type CommuteType = "Walk" | "Bike" | "Public Transport" | "Drive";
+export type ClimateSensitivity = 'Low' | 'Medium' | 'High';
+export type CommuteType = 'Walk' | 'Bike' | 'Public Transport' | 'Drive';
 
 export type DailyRoutine = {
   morningCommuteStart: string; // "HH:MM"
@@ -34,9 +34,14 @@ export type ClimateData = {
   rainProbability: number; // in percentage
 };
 
-export type LifePhase = "Morning Commute" | "Work Hours" | "Lunch" | "Evening Commute" | "Home Recovery";
+export type LifePhase =
+  | 'Morning Commute'
+  | 'Work Hours'
+  | 'Lunch'
+  | 'Evening Commute'
+  | 'Home Recovery';
 
-export type RiskLevel = "Low" | "Medium" | "High" | "Extreme";
+export type RiskLevel = 'Low' | 'Medium' | 'High' | 'Extreme';
 
 export type Risk = {
   name: string;

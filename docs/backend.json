@@ -1,219 +1,97 @@
 {
   "entities": {
     "UserProfile": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "UserProfile",
+      "title": "User Profile",
+      "description": "Stores a user's persistent context, including location, daily routine, and climate sensitivities.",
       "type": "object",
-      "description": "Represents a user's profile with optional information for personalized recommendations.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the user profile."
+          "description": "The user's unique ID, matching their Firebase Auth UID."
         },
-        "ageGroup": {
-          "type": "string",
-          "description": "Age group of the user (Child, Adult, Elderly) for personalized recommendations.",
-          "format": "string"
+        "location": {
+          "type": "object",
+          "description": "The user's primary location for climate data.",
+          "properties": {
+            "city": {
+              "type": "string"
+            },
+            "lat": {
+              "type": "number"
+            },
+            "lon": {
+              "type": "number"
+            }
+          },
+          "required": ["city", "lat", "lon"]
         },
-        "activityLevel": {
-          "type": "string",
-          "description": "Outdoor activity level of the user (Low, Medium, High) for personalized recommendations.",
-          "format": "string"
+        "routine": {
+          "type": "object",
+          "description": "The user's typical daily schedule.",
+          "properties": {
+            "morningCommuteStart": {
+              "type": "string",
+              "format": "time"
+            },
+            "workHoursStart": {
+              "type": "string",
+              "format": "time"
+            },
+            "lunchStart": {
+              "type": "string",
+              "format": "time"
+            },
+            "eveningCommuteStart": {
+              "type": "string",
+              "format": "time"
+            }
+          },
+          "required": ["morningCommuteStart", "workHoursStart", "lunchStart", "eveningCommuteStart"]
         },
-        "locationId": {
+        "commuteType": {
           "type": "string",
-          "description": "Reference to the Location entity. (Relationship: UserProfile 1:1 Location)"
+          "enum": ["Walk", "Bike", "Public Transport", "Drive"]
+        },
+        "sensitivities": {
+          "type": "object",
+          "description": "The user's self-reported sensitivity to different climate factors.",
+          "properties": {
+            "heat": {
+              "type": "string",
+              "enum": ["Low", "Medium", "High"]
+            },
+            "aqi": {
+              "type": "string",
+              "enum": ["Low", "Medium", "High"]
+            },
+            "uv": {
+              "type": "string",
+              "enum": ["Low", "Medium", "High"]
+            }
+          },
+          "required": ["heat", "aqi", "uv"]
         }
       },
-      "required": [
-        "id",
-        "locationId"
-      ]
-    },
-    "Location": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Location",
-      "type": "object",
-      "description": "Represents a geographical location for weather and air quality data retrieval.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the location."
-        },
-        "city": {
-          "type": "string",
-          "description": "City name of the location."
-        },
-        "latitude": {
-          "type": "number",
-          "description": "Latitude of the location."
-        },
-        "longitude": {
-          "type": "number",
-          "description": "Longitude of the location."
-        }
-      },
-      "required": [
-        "id",
-        "city",
-        "latitude",
-        "longitude"
-      ]
-    },
-    "RiskAssessment": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "RiskAssessment",
-      "type": "object",
-      "description": "Represents the calculated risk levels for various climate factors at a specific location and time.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the risk assessment."
-        },
-        "locationId": {
-          "type": "string",
-          "description": "Reference to the Location entity. (Relationship: RiskAssessment 1:1 Location)"
-        },
-        "timestamp": {
-          "type": "string",
-          "description": "Timestamp of when the risk assessment was generated.",
-          "format": "date-time"
-        },
-        "heatRisk": {
-          "type": "string",
-          "description": "Risk level for heat exposure (Low, Medium, High, Extreme)."
-        },
-        "uvRisk": {
-          "type": "string",
-          "description": "Risk level for UV exposure (Low, Medium, High, Extreme)."
-        },
-        "aqiRisk": {
-          "type": "string",
-          "description": "Risk level for Air Quality Index (Low, Medium, High, Extreme)."
-        },
-        "humidityDiscomfort": {
-          "type": "string",
-          "description": "Risk level for humidity discomfort (Low, Medium, High, Extreme)."
-        },
-        "rainExposure": {
-          "type": "string",
-          "description": "Risk level for rain exposure (Low, Medium, High, Extreme)."
-        }
-      },
-      "required": [
-        "id",
-        "locationId",
-        "timestamp",
-        "heatRisk",
-        "uvRisk",
-        "aqiRisk",
-        "humidityDiscomfort",
-        "rainExposure"
-      ]
-    },
-    "SafetyAdvisory": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "SafetyAdvisory",
-      "type": "object",
-      "description": "Represents the AI-generated safety advisory based on the risk assessment.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the safety advisory."
-        },
-        "riskAssessmentId": {
-          "type": "string",
-          "description": "Reference to the RiskAssessment entity. (Relationship: SafetyAdvisory 1:1 RiskAssessment)"
-        },
-        "advisoryText": {
-          "type": "string",
-          "description": "The AI-generated safety advisory text."
-        }
-      },
-      "required": [
-        "id",
-        "riskAssessmentId",
-        "advisoryText"
-      ]
+      "required": ["id", "location", "routine", "commuteType", "sensitivities"]
     }
   },
   "auth": {
     "providers": [
-      "password",
       "anonymous"
     ]
   },
   "firestore": {
     "structure": [
       {
-        "path": "/users/{userId}/userProfiles/{profileId}",
+        "path": "/users/{userId}",
         "definition": {
           "entityName": "UserProfile",
           "schema": {
             "$ref": "#/backend/entities/UserProfile"
           },
-          "description": "Stores user profile data. Uses path-based ownership for simple, robust security rules.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The ID of the user."
-            },
-            {
-              "name": "profileId",
-              "description": "The ID of the user profile."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/locations/{locationId}",
-        "definition": {
-          "entityName": "Location",
-          "schema": {
-            "$ref": "#/backend/entities/Location"
-          },
-          "description": "Stores location data for weather and air quality data retrieval.",
-          "params": [
-            {
-              "name": "locationId",
-              "description": "The ID of the location."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/riskAssessments/{riskAssessmentId}",
-        "definition": {
-          "entityName": "RiskAssessment",
-          "schema": {
-            "$ref": "#/backend/entities/RiskAssessment"
-          },
-          "description": "Stores risk assessment data for various climate factors.",
-          "params": [
-            {
-              "name": "riskAssessmentId",
-              "description": "The ID of the risk assessment."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/safetyAdvisories/{safetyAdvisoryId}",
-        "definition": {
-          "entityName": "SafetyAdvisory",
-          "schema": {
-            "$ref": "#/backend/entities/SafetyAdvisory"
-          },
-          "description": "Stores AI-generated safety advisories based on risk assessments.",
-          "params": [
-            {
-              "name": "safetyAdvisoryId",
-              "description": "The ID of the safety advisory."
-            }
-          ]
+          "description": "Stores a single document per user containing their complete profile. The document ID must match the user's Firebase Auth UID."
         }
       }
-    ],
-    "reasoning": "The Firestore structure is designed to ensure Authorization Independence, support QAPs (queries and pagination), and maintain a clear separation of concerns. User-specific data (UserProfile) is stored under `/users/{userId}` to leverage path-based security rules, making user data private and easily manageable. The Location, RiskAssessment, and SafetyAdvisory entities are stored in root-level collections due to their potentially global nature and to avoid deeply nested structures which can complicate querying and security rules. RiskAssessment documents include `locationId`, enabling efficient queries for risk assessments at a particular location. SafetyAdvisory documents include `riskAssessmentId` to enable querying advisories related to specific assessments. The absence of a membership map is intentional here as this application does not inherently feature collaborative data or shared access needs, according to the user's prompt."
+    ]
   }
 }
