@@ -14,7 +14,14 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import type { UserProfile, CommuteType, ClimateSensitivity } from '@/lib/data';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { Info, LocateFixed } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 const formSchema = z.object({
   location: z.object({
@@ -42,14 +49,35 @@ interface UserProfileFormProps {
 }
 
 const SENSITIVITY_LEVELS: ClimateSensitivity[] = ['Low', 'Medium', 'High'];
-const COMMUTE_TYPES: CommuteType[] = ['Walk', 'Bike', 'Public Transport', 'Drive'];
+const COMMUTE_TYPES: CommuteType[] = [
+  'Walk',
+  'Bike',
+  'Public Transport',
+  'Drive',
+];
+
+// Generate time options in 30-minute increments
+const generateTimeOptions = () => {
+  const options = [];
+  for (let h = 0; h < 24; h++) {
+    for (let m = 0; m < 60; m += 30) {
+      const hour = h.toString().padStart(2, '0');
+      const minute = m.toString().padStart(2, '0');
+      options.push(`${hour}:${minute}`);
+    }
+  }
+  return options;
+};
+const timeOptions = generateTimeOptions();
 
 export function UserProfileForm({ userProfile, onSave }: UserProfileFormProps) {
+  const [isDetecting, setIsDetecting] = useState(false);
   const {
     register,
     handleSubmit,
     control,
     reset,
+    setValue,
     formState: { errors, isSubmitting, isDirty },
   } = useForm<ProfileFormValues>({
     resolver: zodResolver(formSchema),
@@ -61,12 +89,48 @@ export function UserProfileForm({ userProfile, onSave }: UserProfileFormProps) {
         location: {
           city: userProfile.location?.city || '',
         },
-        routine: userProfile.routine || { morningCommuteStart: '08:00', workHoursStart: '09:00', lunchStart: '12:00', eveningCommuteStart: '17:00' },
+        routine: userProfile.routine || {
+          morningCommuteStart: '08:00',
+          workHoursStart: '09:00',
+          lunchStart: '12:00',
+          eveningCommuteStart: '17:00',
+        },
         commuteType: userProfile.commuteType || 'Drive',
-        sensitivities: userProfile.sensitivities || { heat: 'Medium', aqi: 'Medium', uv: 'Medium' },
+        sensitivities: userProfile.sensitivities || {
+          heat: 'Medium',
+          aqi: 'Medium',
+          uv: 'Medium',
+        },
       });
     }
   }, [userProfile, reset]);
+
+  const handleDetectLocation = () => {
+    setIsDetecting(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        // Simple reverse geocoding to get city name
+        // A real app would use a more robust service
+        try {
+          const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+          const data = await response.json();
+          const city = data.address.city || data.address.town || data.address.village || 'Unknown location';
+          setValue('location.city', city, { shouldDirty: true });
+        } catch (error) {
+          console.error("Error fetching city name:", error);
+          // Handle error, maybe show a toast
+        } finally {
+          setIsDetecting(false);
+        }
+      },
+      (error) => {
+        console.error("Geolocation error:", error);
+        // Handle error, maybe show a toast
+        setIsDetecting(false);
+      }
+    );
+  };
 
   const onSubmit = (data: ProfileFormValues) => {
     // A real implementation would geocode the city to get lat/lon
@@ -80,6 +144,64 @@ export function UserProfileForm({ userProfile, onSave }: UserProfileFormProps) {
     };
     onSave(submissionData);
   };
+  
+  const renderTimeSelector = (name: keyof ProfileFormValues['routine']) => (
+     <Controller
+        name={`routine.${name}`}
+        control={control}
+        render={({ field }) => (
+          <Select onValueChange={field.onChange} defaultValue={field.value}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select a time" />
+            </SelectTrigger>
+            <SelectContent>
+              {timeOptions.map((time) => (
+                <SelectItem key={time} value={time}>
+                  {time}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+      />
+  );
+  
+  const renderSensitivitySelector = (name: keyof ProfileFormValues['sensitivities'], label: string, explanation: string) => (
+     <div>
+        <div className="flex items-center gap-2">
+           <Label>{label}</Label>
+           <TooltipProvider>
+              <Tooltip>
+                 <TooltipTrigger asChild>
+                    <Info className="h-4 w-4 text-muted-foreground" />
+                 </TooltipTrigger>
+                 <TooltipContent>
+                    <p className="max-w-xs">{explanation}</p>
+                 </TooltipContent>
+              </Tooltip>
+           </TooltipProvider>
+        </div>
+        <Controller
+           name={`sensitivities.${name}`}
+           control={control}
+           render={({ field }) => (
+           <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <SelectTrigger>
+                 <SelectValue placeholder="Select level" />
+              </SelectTrigger>
+              <SelectContent>
+                 {SENSITIVITY_LEVELS.map((level) => (
+                 <SelectItem key={level} value={level}>
+                    {level}
+                 </SelectItem>
+                 ))}
+              </SelectContent>
+           </Select>
+           )}
+           />
+     </div>
+  );
+
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
@@ -88,8 +210,21 @@ export function UserProfileForm({ userProfile, onSave }: UserProfileFormProps) {
         <div className="grid grid-cols-1 gap-4">
           <div>
             <Label htmlFor="city">Your Primary City</Label>
-            <Input id="city" {...register('location.city')} placeholder="e.g., San Francisco" />
-            {errors.location?.city && <p className="text-sm text-destructive">{errors.location.city.message}</p>}
+            <div className="flex items-center gap-2">
+              <Input
+                id="city"
+                {...register('location.city')}
+                placeholder="e.g., San Francisco"
+              />
+              <Button type="button" variant="outline" size="icon" onClick={handleDetectLocation} disabled={isDetecting}>
+                <LocateFixed className="h-4 w-4" />
+              </Button>
+            </div>
+            {errors.location?.city && (
+              <p className="text-sm text-destructive">
+                {errors.location.city.message}
+              </p>
+            )}
           </div>
         </div>
       </div>
@@ -99,36 +234,45 @@ export function UserProfileForm({ userProfile, onSave }: UserProfileFormProps) {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <Label htmlFor="morningCommuteStart">Morning Commute</Label>
-            <Input id="morningCommuteStart" type="time" {...register('routine.morningCommuteStart')} />
+            {renderTimeSelector('morningCommuteStart')}
           </div>
           <div>
             <Label htmlFor="workHoursStart">Work Day Starts</Label>
-            <Input id="workHoursStart" type="time" {...register('routine.workHoursStart')} />
+            {renderTimeSelector('workHoursStart')}
           </div>
           <div>
             <Label htmlFor="lunchStart">Lunch Break</Label>
-            <Input id="lunchStart" type="time" {...register('routine.lunchStart')} />
+            {renderTimeSelector('lunchStart')}
           </div>
           <div>
             <Label htmlFor="eveningCommuteStart">Evening Commute</Label>
-            <Input id="eveningCommuteStart" type="time" {...register('routine.eveningCommuteStart')} />
+            {renderTimeSelector('eveningCommuteStart')}
           </div>
         </div>
       </div>
 
       <div className="space-y-4">
         <h3 className="text-lg font-medium">Commute & Sensitivities</h3>
-        <div className="grid grid-cols-2 gap-4">
-        <div>
+        <div className="grid grid-cols-1 gap-4">
+          <div>
             <Label>Primary Commute</Label>
             <Controller
               name="commuteType"
               control={control}
               render={({ field }) => (
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <SelectTrigger><SelectValue placeholder="Select commute type" /></SelectTrigger>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select commute type" />
+                  </SelectTrigger>
                   <SelectContent>
-                    {COMMUTE_TYPES.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}
+                    {COMMUTE_TYPES.map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {type}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               )}
@@ -136,54 +280,12 @@ export function UserProfileForm({ userProfile, onSave }: UserProfileFormProps) {
           </div>
         </div>
       </div>
-      
+
       <div className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <Label>Heat Sensitivity</Label>
-            <Controller
-              name="sensitivities.heat"
-              control={control}
-              render={({ field }) => (
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <SelectTrigger><SelectValue placeholder="Select level" /></SelectTrigger>
-                  <SelectContent>
-                    {SENSITIVITY_LEVELS.map(level => <SelectItem key={level} value={level}>{level}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              )}
-            />
-          </div>
-          <div>
-            <Label>Air Quality (AQI) Sensitivity</Label>
-             <Controller
-              name="sensitivities.aqi"
-              control={control}
-              render={({ field }) => (
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <SelectTrigger><SelectValue placeholder="Select level" /></SelectTrigger>
-                  <SelectContent>
-                    {SENSITIVITY_LEVELS.map(level => <SelectItem key={level} value={level}>{level}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              )}
-            />
-          </div>
-          <div>
-            <Label>UV Sensitivity</Label>
-             <Controller
-              name="sensitivities.uv"
-              control={control}
-              render={({ field }) => (
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <SelectTrigger><SelectValue placeholder="Select level" /></SelectTrigger>
-                  <SelectContent>
-                    {SENSITIVITY_LEVELS.map(level => <SelectItem key={level} value={level}>{level}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              )}
-            />
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+           {renderSensitivitySelector( 'heat', 'Heat Sensitivity', 'How much hot weather affects your well-being and ability to function.' )}
+           {renderSensitivitySelector( 'aqi', 'Air Quality (AQI) Sensitivity', 'How sensitive you are to pollutants and particles in the air, which can affect breathing and overall health.' )}
+           {renderSensitivitySelector('uv', 'UV Sensitivity', 'How easily your skin reacts to sun exposure. Higher sensitivity means a greater need for sun protection.')}
         </div>
       </div>
 

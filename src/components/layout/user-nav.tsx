@@ -12,20 +12,18 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useAuth, useUser } from '@/firebase';
-import { initiateAnonymousSignIn } from '@/firebase/non-blocking-login';
 import { LogOut, User as UserIcon } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 export function UserNav() {
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
+  const router = useRouter();
 
-  const handleLogin = () => {
-    initiateAnonymousSignIn(auth);
-  };
-
-  const handleLogout = () => {
-    auth.signOut();
+  const handleLogout = async () => {
+    await auth.signOut();
+    router.push('/'); // Redirect to home page after logout
   };
 
   if (isUserLoading) {
@@ -34,9 +32,14 @@ export function UserNav() {
 
   if (!user) {
     return (
-      <Button onClick={handleLogin} variant="outline">
-        Login
-      </Button>
+      <div className="flex items-center gap-2">
+        <Button asChild variant="ghost">
+          <Link href="/login">Login</Link>
+        </Button>
+        <Button asChild>
+          <Link href="/signup">Sign Up</Link>
+        </Button>
+      </div>
     );
   }
 
@@ -56,7 +59,7 @@ export function UserNav() {
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-medium leading-none">My Account</p>
             <p className="text-xs leading-none text-muted-foreground">
-              Guest User
+              {user.email}
             </p>
           </div>
         </DropdownMenuLabel>
