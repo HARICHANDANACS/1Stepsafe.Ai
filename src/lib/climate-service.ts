@@ -1,3 +1,4 @@
+
 import type { ClimateData } from './data';
 
 // A simple in-memory cache to store API responses to avoid redundant calls.
@@ -31,8 +32,10 @@ export async function getClimateDataForCity(lat: number, lon: number): Promise<C
     const cacheKey = `current-${lat}-${lon}`;
     if (cache.has(cacheKey)) return cache.get(cacheKey);
 
+    let aqi = 50; // Default AQI
+    
     try {
-        // Use Google's free Air Quality API - no key needed for basic use.
+        // Use Google's free Air Quality API.
         const aqiResponse = await fetch('https://airquality.googleapis.com/v1/currentConditions:lookup', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -41,34 +44,27 @@ export async function getClimateDataForCity(lat: number, lon: number): Promise<C
             }),
         });
 
-        if (!aqiResponse.ok) {
-            throw new Error(`Google Air Quality API failed with status ${aqiResponse.status}`);
+        if (aqiResponse.ok) {
+            const aqiData = await aqiResponse.json();
+            aqi = aqiData?.indexes?.[0]?.aqi || 50;
+        } else {
+            // Log the error but don't throw, so we can fall back to mock data.
+            console.error(`Google Air Quality API failed with status ${aqiResponse.status}`);
         }
-        
-        const aqiData = await aqiResponse.json();
-        const aqi = aqiData?.indexes?.[0]?.aqi || 50; // Default to 50 if not found
-
-        // Generate stable, deterministic mock data for other parameters
-        const otherData = generateDeterministicMockData(lat + lon);
-
-        const climateData: ClimateData = {
-            ...otherData,
-            aqi: aqi,
-        };
-        
-        cache.set(cacheKey, climateData);
-        return climateData;
-
     } catch (error) {
         console.error("Failed to fetch climate data:", error);
-        // Fallback to fully deterministic mock data in case of API failure
-        const mockSeed = lat + lon;
-        const random = createDeterministicRandom(mockSeed);
-        return {
-            ...generateDeterministicMockData(mockSeed),
-            aqi: Math.floor(10 + random() * 150),
-        };
     }
+
+    // Generate stable, deterministic mock data for other parameters
+    const otherData = generateDeterministicMockData(lat + lon);
+
+    const climateData: ClimateData = {
+        ...otherData,
+        aqi: aqi,
+    };
+    
+    cache.set(cacheKey, climateData);
+    return climateData;
 }
 
 /**
