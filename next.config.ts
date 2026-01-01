@@ -16,16 +16,14 @@ const nextConfig: NextConfig = {
         port: '',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'picsum.photos',
+        port: '',
+        pathname: '/**',
+      }
     ],
   },
-  experimental: {
-    // Adding the allowedDevOrigins configuration for the development server
-    // to resolve the cross-origin request error.
-    allowedDevOrigins: [
-        '*.cloudworkstations.dev',
-        '*.firebase.studio',
-    ],
-  }
 };
 
 export default nextConfig;
