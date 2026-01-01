@@ -6,7 +6,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import type { UserProfile, ClimateData } from '@/lib/data';
+import type { UserProfile, ClimateData, RiskProfile } from '@/lib/data';
 import { UserProfileSchema, ClimateDataSchema, DailyHealthReportSchema } from '@/lib/schemas';
 import { analyzeRisks } from '@/lib/risk-engine';
 
@@ -62,7 +62,12 @@ const prompt = ai.definePrompt({
       schema: GenerateDailyHealthReportInputSchema.extend({
         tempChange: z.number(),
         aqiChange: z.number(),
-        riskProfile: z.any(),
+        riskProfile: z.object({
+            heatRisk: z.object({ level: z.string() }),
+            uvRisk: z.object({ level: z.string() }),
+            aqiRisk: z.object({ level: z.string() }),
+            rainExposure: z.object({ level: z.string() }),
+        }),
         lifePhases: z.array(z.object({
             phase: z.string(),
             startTime: z.string(),
@@ -126,7 +131,7 @@ const generateDailyHealthReportFlow = ai.defineFlow(
     inputSchema: GenerateDailyHealthReportInputSchema.extend({
         tempChange: z.number(),
         aqiChange: z.number(),
-        riskProfile: z.any(),
+        riskProfile: z.custom<RiskProfile>(),
         lifePhases: z.array(z.object({
             phase: z.string(),
             startTime: z.string(),
