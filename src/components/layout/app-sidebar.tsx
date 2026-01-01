@@ -11,21 +11,18 @@ import {
 import {
   Home,
   LineChart,
-  Package,
-  Package2,
   Settings,
-  ShoppingCart,
-  Users2,
   Shield,
-  HeartPulse
+  HeartPulse,
+  Map,
 } from 'lucide-react';
-import { StepSafeLogo } from '../icons';
 import { UserNav } from './user-nav';
 
 const sidebarNavLinks = [
     { href: '/dashboard', icon: Home, label: 'Today Overview' },
     { href: '/dashboard/guidance', icon: Shield, label: 'Daily Guidance' },
     { href: '/dashboard/history', icon: LineChart, label: 'Exposure History' },
+    { href: '/dashboard/live-map', icon: Map, label: 'Live Map' },
     { href: '/dashboard/profile', icon: Settings, label: 'Profile' },
 ];
 
