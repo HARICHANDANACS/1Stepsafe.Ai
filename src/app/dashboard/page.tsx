@@ -2,7 +2,7 @@
 
 import { useUser, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
-import type { UserProfile, DailySummary } from '@/lib/data';
+import type { UserProfile, DailySummary, ExposureRecord } from '@/lib/data';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,8 @@ import { SafeUnsafeTimeWindows } from './_components/safe-unsafe-time-windows';
 import { WhatChangedToday } from './_components/what-changed-today';
 import { PersonalHealthRiskScore } from './_components/personal-health-risk-score';
 import toast from 'react-hot-toast';
+import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { collection } from 'firebase/firestore';
 
 
 export default function DashboardOverviewPage() {
@@ -25,6 +27,7 @@ export default function DashboardOverviewPage() {
   const [dailySummary, setDailySummary] = useState<DailySummary | null>(null);
   const [safetyAdvisory, setSafetyAdvisory] = useState<string | null>(null);
   const [isDataLoading, setIsDataLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const userProfileRef = useMemoFirebase(() => {
     if (!user) return null;
@@ -36,19 +39,24 @@ export default function DashboardOverviewPage() {
 
   useEffect(() => {
     if (userProfile && userProfile.name) {
-      toast.success(`Welcome back, ${userProfile.name}!`);
+      const welcomed = sessionStorage.getItem('welcomed');
+      if (!welcomed) {
+        toast.success(`Welcome back, ${userProfile.name}!`);
+        sessionStorage.setItem('welcomed', 'true');
+      }
     }
   }, [userProfile]);
 
   useEffect(() => {
-    if (userProfile && userProfile.location) {
+    if (userProfile?.location?.lat && userProfile?.location?.lon) {
       const fetchData = async () => {
         setIsDataLoading(true);
-
-        const todayClimate = getClimateDataForCity(userProfile.location.city);
-        const yesterdayClimate = getYesterdayClimateData(userProfile.location.city);
+        setError(null);
 
         try {
+          const todayClimate = await getClimateDataForCity(userProfile.location.lat!, userProfile.location.lon!);
+          const yesterdayClimate = await getYesterdayClimateData(userProfile.location.lat!, userProfile.location.lon!);
+
           // Generate both summary and advisory in parallel
           const [summaryResult, advisoryResult] = await Promise.all([
             generateDailySummary({
@@ -62,8 +70,25 @@ export default function DashboardOverviewPage() {
           setDailySummary(summaryResult);
           setSafetyAdvisory(advisoryResult.advisory);
 
-        } catch (error) {
+           // After getting the summary, save the exposure record
+          if (user) {
+            const historyRef = collection(firestore, 'users', user.uid, 'exposureHistory');
+            const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+            const record: ExposureRecord = {
+              date: today,
+              personalHealthRiskScore: summaryResult.personalHealthRiskScore,
+              maxHeat: todayClimate.temperature,
+              maxAqi: todayClimate.aqi,
+              maxUv: todayClimate.uvIndex,
+            };
+            // This is a non-blocking write
+            addDocumentNonBlocking(historyRef, record);
+          }
+
+
+        } catch (error: any) {
           console.error("Error generating daily data:", error);
+          setError(error.message || "Could not load daily summary. The API key may be missing or invalid.");
         } finally {
           setIsDataLoading(false);
         }
@@ -73,7 +98,7 @@ export default function DashboardOverviewPage() {
     } else if (!isProfileLoading && !userProfile) {
       setIsDataLoading(false);
     }
-  }, [userProfile, isProfileLoading]);
+  }, [userProfile, isProfileLoading, user, firestore]);
 
   const isLoading = isUserLoading || isProfileLoading || isDataLoading;
 
@@ -121,11 +146,11 @@ export default function DashboardOverviewPage() {
     );
   }
 
-  if (!dailySummary) {
+  if (error || !dailySummary) {
     return (
         <Card className="text-center p-8">
             <h2 className="text-xl font-semibold mb-2">Could not generate summary</h2>
-            <p className="text-muted-foreground">There was an issue generating your daily climate-health summary. Please try again later.</p>
+            <p className="text-muted-foreground">{error || "There was an issue generating your daily climate-health summary. Please try again later."}</p>
         </Card>
     )
   }

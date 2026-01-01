@@ -56,6 +56,7 @@ export default function GuidancePage() {
 
     const [dailyGuidance, setDailyGuidance] = useState<DailyGuidance | null>(null);
     const [isDataLoading, setIsDataLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     const userProfileRef = useMemoFirebase(() => {
         if (!user) return null;
@@ -66,20 +67,22 @@ export default function GuidancePage() {
         useDoc<UserProfile>(userProfileRef);
 
     useEffect(() => {
-        if (userProfile && userProfile.location) {
+        if (userProfile?.location?.lat && userProfile?.location?.lon) {
             const fetchData = async () => {
                 setIsDataLoading(true);
-
-                const climateData = getClimateDataForCity(userProfile.location.city);
+                setError(null);
 
                 try {
+                    const climateData = await getClimateDataForCity(userProfile.location.lat!, userProfile.location.lon!);
+
                     const result = await generateLifePhaseGuidance({
                         userProfile,
                         climateData,
                     });
                     setDailyGuidance(result);
-                } catch (error) {
+                } catch (error: any) {
                     console.error("Error generating daily guidance:", error);
+                    setError(error.message || "Could not generate guidance. The API key might be missing or invalid.");
                 } finally {
                     setIsDataLoading(false);
                 }
@@ -97,11 +100,11 @@ export default function GuidancePage() {
         return <LoadingSkeleton />;
     }
     
-    if (!dailyGuidance) {
+    if (error || !dailyGuidance) {
          return (
             <Card className="text-center p-8">
                 <h2 className="text-xl font-semibold mb-2">Could not generate guidance</h2>
-                <p className="text-muted-foreground">There was an issue generating your detailed daily guidance. Please try again later.</p>
+                <p className="text-muted-foreground">{error || "There was an issue generating your detailed daily guidance. Please try again later."}</p>
             </Card>
         )
     }
