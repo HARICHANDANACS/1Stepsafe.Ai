@@ -52,7 +52,9 @@ export function DailyReportProvider({ children }: DailyReportProviderProps) {
   
   const fetchData = useCallback(async () => {
     if (!user || !userProfile || !userProfile.location?.lat || !userProfile.location?.lon) {
-      setIsLoading(false);
+      if (!isUserLoading && !isProfileLoading) {
+        setIsLoading(false);
+      }
       return;
     }
     
@@ -91,7 +93,7 @@ export function DailyReportProvider({ children }: DailyReportProviderProps) {
     } finally {
       setIsLoading(false);
     }
-  }, [user, userProfile, firestore]);
+  }, [user, userProfile, firestore, isUserLoading, isProfileLoading]);
 
   useEffect(() => {
     const isDataLoading = isUserLoading || isProfileLoading;
@@ -111,20 +113,23 @@ export function DailyReportProvider({ children }: DailyReportProviderProps) {
        // Only fetch if there is no report or the report is for a different user
        if (!report || report.userProfile?.id !== userProfile.id) {
          fetchData();
+       } else {
+        // Data is already loaded for the current user and profile
+        setIsLoading(false);
        }
     } else {
       // Handle case where user has no location set
-      setReport({ dailySummary: null, safetyAdvisory: null, dailyGuidance: null, userProfile: userProfile || null });
       setIsLoading(false);
+      setReport({ dailySummary: null, safetyAdvisory: null, dailyGuidance: null, userProfile: userProfile || null });
     }
 
   }, [user, isUserLoading, userProfile, isProfileLoading, fetchData, report]);
 
-  const refetch = () => {
+  const refetch = useCallback(() => {
     // Clear the report to allow refetching
     setReport(null);
     fetchData();
-  }
+  }, [fetchData]);
 
   const contextValue = { report, isLoading, error, refetch };
 
