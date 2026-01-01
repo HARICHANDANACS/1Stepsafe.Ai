@@ -50,11 +50,9 @@ export function DailyReportProvider({ children }: DailyReportProviderProps) {
   const { data: userProfile, isLoading: isProfileLoading } =
     useDoc<UserProfile>(userProfileRef);
   
-  const fetchData = useCallback(async () => {
-    if (!user || !userProfile || !userProfile.location?.lat || !userProfile.location?.lon) {
-      if (!isUserLoading && !isProfileLoading) {
-        setIsLoading(false);
-      }
+  const fetchData = useCallback(async (profile: UserProfile) => {
+    if (!profile.location?.lat || !profile.location?.lon) {
+      setIsLoading(false);
       return;
     }
     
@@ -62,16 +60,17 @@ export function DailyReportProvider({ children }: DailyReportProviderProps) {
     setError(null);
     
     try {
-      const todayClimate = await getClimateDataForCity(userProfile.location.lat, userProfile.location.lon);
-      const yesterdayClimate = await getYesterdayClimateData(userProfile.location.lat, userProfile.location.lon);
+      const todayClimate = await getClimateDataForCity(profile.location.lat, profile.location.lon);
+      const yesterdayClimate = await getYesterdayClimateData(profile.location.lat, profile.location.lon);
       
       const fullReport = await generateDailyHealthReport({
-        userProfile,
+        userProfile: profile,
         todayClimate,
         yesterdayClimate
       });
       
-      setReport({ ...fullReport, userProfile });
+      setReport({ ...fullReport, userProfile: profile });
+      sessionStorage.setItem(`reportFetched_${user?.uid}`, 'true');
       
       if (user && fullReport.dailySummary) {
         const historyRef = collection(firestore, 'users', user.uid, 'exposureHistory');
@@ -93,39 +92,50 @@ export function DailyReportProvider({ children }: DailyReportProviderProps) {
     } finally {
       setIsLoading(false);
     }
-  }, [user, userProfile, firestore, isUserLoading, isProfileLoading]);
+  }, [user, firestore]);
 
   useEffect(() => {
     const isDataLoading = isUserLoading || isProfileLoading;
-
     if (isDataLoading) {
-      setIsLoading(true);
-      return;
+        setIsLoading(true);
+        return;
     }
 
     if (!user) {
-      setIsLoading(false);
-      setReport(null);
-      return;
+        setIsLoading(false);
+        setReport(null);
+        return;
     }
     
     if (userProfile && userProfile.location?.city) {
-       if (!report || report.userProfile?.id !== userProfile.id) {
-         fetchData();
-       } else {
+        const alreadyFetched = sessionStorage.getItem(`reportFetched_${user.uid}`);
+        if (!alreadyFetched) {
+            fetchData(userProfile);
+        } else {
+             if (!report) {
+                // This can happen on page navigation, just show loading until state is restored or refetched.
+                setIsLoading(true); 
+             } else {
+                setIsLoading(false);
+             }
+        }
+    } else if (userProfile) { // Profile exists but is incomplete
         setIsLoading(false);
-       }
-    } else {
-      setIsLoading(false);
-      setReport({ dailySummary: null, safetyAdvisory: null, dailyGuidance: null, userProfile: userProfile || null });
+        setReport({ dailySummary: null, safetyAdvisory: null, dailyGuidance: null, userProfile });
     }
 
-  }, [user, isUserLoading, userProfile, isProfileLoading, fetchData, report]);
+  }, [user, userProfile, isUserLoading, isProfileLoading, fetchData, report]);
+
 
   const refetch = useCallback(() => {
-    setReport(null);
-    fetchData();
-  }, [fetchData]);
+    if (user?.uid) {
+        sessionStorage.removeItem(`reportFetched_${user.uid}`);
+    }
+    setReport(null); // Clear old report
+    if (userProfile) {
+        fetchData(userProfile);
+    }
+  }, [fetchData, userProfile, user?.uid]);
 
   const contextValue = { report, isLoading, error, refetch };
 
