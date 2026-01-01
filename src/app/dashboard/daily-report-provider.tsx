@@ -5,7 +5,7 @@ import { useUser, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { doc, collection } from 'firebase/firestore';
 import type { UserProfile, DailyHealthReport, ExposureRecord } from '@/lib/data';
 import { getClimateDataForCity, getYesterdayClimateData } from '@/lib/climate-service';
-import { generateSyntheticDailyHealthReport } from '@/lib/synthetic-data-service';
+import { generateDailyHealthReport } from '@/ai/flows/generate-daily-health-report.flow';
 import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 interface DailyReportContextType {
@@ -65,7 +65,7 @@ export function DailyReportProvider({ children }: DailyReportProviderProps) {
       const todayClimate = await getClimateDataForCity(userProfile.location.lat, userProfile.location.lon);
       const yesterdayClimate = await getYesterdayClimateData(userProfile.location.lat, userProfile.location.lon);
       
-      const fullReport = generateSyntheticDailyHealthReport({
+      const fullReport = await generateDailyHealthReport({
         userProfile,
         todayClimate,
         yesterdayClimate
