@@ -4,17 +4,27 @@ import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
-import { AlertCircle, Compass, Loader2, MapPin } from 'lucide-react';
+import { AlertCircle, Compass, Loader2, MapPin, PersonStanding, Bike, Car } from 'lucide-react';
 import type { ClimateData } from '@/lib/data';
 import { getClimateDataForCity } from '@/lib/climate-service';
 import { analyzeRisks } from '@/lib/risk-engine';
 import type { Risk } from '@/lib/data';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface Location {
   lat: number;
   lon: number;
   city?: string;
 }
+
+type AvatarType = '🚶' | '🚲' | '🚗' | '🧍';
+
+const avatars: { value: AvatarType, label: string, icon: React.ComponentType<{className?: string}> }[] = [
+    { value: '🧍', label: 'Person', icon: PersonStanding },
+    { value: '🚶', label: 'Walking', icon: PersonStanding },
+    { value: '🚲', label: 'Biking', icon: Bike },
+    { value: '🚗', label: 'Driving', icon: Car },
+]
 
 const SuggestionCard = ({ risks }: { risks: Risk[] }) => {
     return (
@@ -48,6 +58,7 @@ export default function LiveMapPage() {
   const [isTracking, setIsTracking] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [mapUrl, setMapUrl] = useState<string>('');
+  const [avatar, setAvatar] = useState<AvatarType>('🧍');
 
   const handleLocationUpdate = useCallback(async (position: GeolocationPosition) => {
     setIsLoading(true);
@@ -60,9 +71,9 @@ export default function LiveMapPage() {
       setClimateData(data);
       const analyzedRisks = analyzeRisks(data);
       const topRisks = Object.values(analyzedRisks).filter(risk => risk.level !== 'Low').slice(0, 3);
-      setRisks(topRisks.length > 0 ? topRisks : [analyzedRisks.heatRisk]); // Show at least one risk
+      setRisks(topRisks.length > 0 ? topRisks : [analyzedRisks.heatRisk]);
 
-       setMapUrl(`https://render.openstreetmap.org/cgi-bin/export?bbox=${longitude-0.01},${latitude-0.01},${longitude+0.01},${latitude+0.01}&marker=${latitude},${longitude}&layers=mapnik`);
+       setMapUrl(`https://render.openstreetmap.org/cgi-bin/export?bbox=${longitude-0.01},${latitude-0.01},${longitude+0.01},${latitude+0.01}&layers=mapnik`);
 
     } catch (e) {
       setError('Could not fetch climate data for your location.');
@@ -119,30 +130,54 @@ export default function LiveMapPage() {
                     </Button>
                 </>
             ): (
-                <div className="w-full aspect-video rounded-lg bg-muted flex items-center justify-center">
+                <div className="w-full aspect-video rounded-lg bg-muted flex items-center justify-center relative">
                     {isLoading && !mapUrl && <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />}
                     {error && <p className="text-destructive-foreground">{error}</p>}
                     {mapUrl && (
+                      <>
                         <Image 
                             src={mapUrl} 
                             alt="Map of current location"
-                            width={600}
-                            height={400}
+                            fill
                             className="rounded-md object-cover"
                         />
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-4xl animate-pulse">
+                          {avatar}
+                        </div>
+                      </>
                     )}
                 </div>
             )}
           </CardContent>
         </Card>
-        {location && (
+        {isTracking && (
             <Card>
                 <CardHeader>
-                    <CardTitle>Current Status</CardTitle>
+                    <CardTitle>Map &amp; Location</CardTitle>
                 </CardHeader>
-                <CardContent className="grid grid-cols-2 gap-4 text-sm">
-                    <div className="font-semibold">Latitude:</div><div>{location.lat.toFixed(4)}</div>
-                    <div className="font-semibold">Longitude:</div><div>{location.lon.toFixed(4)}</div>
+                <CardContent className="grid grid-cols-2 gap-4 text-sm items-center">
+                    <div className="font-semibold">Avatar:</div>
+                    <div>
+                         <Select value={avatar} onValueChange={(value: AvatarType) => setAvatar(value)}>
+                            <SelectTrigger className="w-[180px]">
+                                <SelectValue placeholder="Select an avatar" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {avatars.map(({ value, label, icon: Icon }) => (
+                                    <SelectItem key={value} value={value}>
+                                        <div className="flex items-center gap-2">
+                                            <Icon className="h-4 w-4" />
+                                            <span>{label}</span>
+                                        </div>
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    {location && <>
+                        <div className="font-semibold">Latitude:</div><div>{location.lat.toFixed(4)}</div>
+                        <div className="font-semibold">Longitude:</div><div>{location.lon.toFixed(4)}</div>
+                    </>}
                     {climateData && <>
                         <div className="font-semibold">Temperature:</div><div>{climateData.temperature}°F</div>
                         <div className="font-semibold">Air Quality (AQI):</div><div>{climateData.aqi}</div>
@@ -179,3 +214,5 @@ export default function LiveMapPage() {
     </div>
   );
 }
+
+    
