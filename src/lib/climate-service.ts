@@ -48,7 +48,8 @@ export async function getClimateDataForCity(lat: number, lon: number): Promise<C
             const aqiData = await aqiResponse.json();
             aqi = aqiData?.indexes?.[0]?.aqi || 50;
         } else if (aqiResponse.status !== 403) {
-            // If the error is 403, it's a permissions issue. We will silently fall back to mock data.
+            // If the error is 403, it's a permissions issue (API not enabled).
+            // We will silently fall back to mock data for AQI.
             // For any other error, we log it, but still fall back.
             console.error(`Google Air Quality API failed with status ${aqiResponse.status}`);
         }
