@@ -89,7 +89,7 @@ export default function DashboardOverviewPage() {
         <Card>
            <CardHeader>
               <Skeleton className="h-8 w-full" />
-           </Header>
+           </CardHeader>
            <CardContent>
               <Skeleton className="h-32 w-full" />
            </CardContent>
