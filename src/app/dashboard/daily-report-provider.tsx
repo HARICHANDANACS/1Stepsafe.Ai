@@ -56,14 +56,11 @@ export function DailyReportProvider({ children }: DailyReportProviderProps) {
       return;
     }
     
-    // Guard against fetching if we're done loading but have no user.
     if (!user) {
       setIsLoading(false);
       return;
     }
 
-    // Check if we need to fetch data.
-    // This now correctly checks if the user has changed OR if we simply haven't fetched data yet for this session.
     const needsFetching = user.uid !== lastFetchedUserId;
 
     if (needsFetching && userProfile?.location?.lat && userProfile?.location?.lon) {
@@ -108,7 +105,6 @@ export function DailyReportProvider({ children }: DailyReportProviderProps) {
 
       fetchData();
     } else if (!isDataLoading) {
-      // Handles cases where fetching isn't needed or profile is incomplete.
       if (!userProfile?.location?.city) {
          setReport({ dailySummary: null, safetyAdvisory: null, dailyGuidance: null, userProfile: userProfile || null });
       }
