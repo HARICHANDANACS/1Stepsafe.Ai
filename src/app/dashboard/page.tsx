@@ -15,6 +15,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { SafeUnsafeTimeWindows } from './_components/safe-unsafe-time-windows';
 import { WhatChangedToday } from './_components/what-changed-today';
 import { PersonalHealthRiskScore } from './_components/personal-health-risk-score';
+import toast from 'react-hot-toast';
 
 
 export default function DashboardOverviewPage() {
@@ -32,6 +33,12 @@ export default function DashboardOverviewPage() {
 
   const { data: userProfile, isLoading: isProfileLoading } =
     useDoc<UserProfile>(userProfileRef);
+
+  useEffect(() => {
+    if (userProfile && userProfile.name) {
+      toast.success(`Welcome back, ${userProfile.name}!`);
+    }
+  }, [userProfile]);
 
   useEffect(() => {
     if (userProfile && userProfile.location) {
