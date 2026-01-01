@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useState, useEffect, ReactNode, useContext } from 'react';
+import { createContext, useState, useEffect, ReactNode, useContext, useCallback } from 'react';
 import { useUser, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { doc, collection } from 'firebase/firestore';
 import type { UserProfile, DailyHealthReport, ExposureRecord } from '@/lib/data';
@@ -12,12 +12,14 @@ interface DailyReportContextType {
   report: (DailyHealthReport & { userProfile: UserProfile | null }) | null;
   isLoading: boolean;
   error: string | null;
+  refetch: () => void;
 }
 
 export const DailyReportContext = createContext<DailyReportContextType>({
   report: null,
   isLoading: true,
   error: null,
+  refetch: () => {},
 });
 
 export const useDailyReport = () => {
@@ -39,7 +41,6 @@ export function DailyReportProvider({ children }: DailyReportProviderProps) {
   const [report, setReport] = useState<(DailyHealthReport & { userProfile: UserProfile | null }) | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [lastFetchedUserId, setLastFetchedUserId] = useState<string | null>(null);
 
   const userProfileRef = useMemoFirebase(() => {
     if (!user) return null;
@@ -48,71 +49,84 @@ export function DailyReportProvider({ children }: DailyReportProviderProps) {
 
   const { data: userProfile, isLoading: isProfileLoading } =
     useDoc<UserProfile>(userProfileRef);
+  
+  const fetchData = useCallback(async () => {
+    if (!user || !userProfile || !userProfile.location?.lat || !userProfile.location?.lon) {
+      setIsLoading(false);
+      return;
+    }
+    
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const todayClimate = await getClimateDataForCity(userProfile.location.lat, userProfile.location.lon);
+      const yesterdayClimate = await getYesterdayClimateData(userProfile.location.lat, userProfile.location.lon);
+      
+      const fullReport = await generateDailyHealthReport({
+        userProfile,
+        todayClimate,
+        yesterdayClimate
+      });
+      
+      setReport({ ...fullReport, userProfile });
+      
+      if (user && fullReport.dailySummary) {
+        const historyRef = collection(firestore, 'users', user.uid, 'exposureHistory');
+        const today = new Date().toISOString().split('T')[0];
+        const record: ExposureRecord = {
+          date: today,
+          personalHealthRiskScore: fullReport.dailySummary.personalHealthRiskScore,
+          maxHeat: todayClimate.temperature,
+          maxAqi: todayClimate.aqi,
+          maxUv: todayClimate.uvIndex,
+        };
+        addDocumentNonBlocking(historyRef, record);
+      }
+      
+    } catch (error: any) {
+      console.error("Error generating daily health report:", error);
+      setError(error.message || "Could not load daily health report. The API key may be missing, invalid, or you may have exceeded your usage quota.");
+      setReport(null); // Clear stale report on error
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user, userProfile, firestore]);
 
   useEffect(() => {
     const isDataLoading = isUserLoading || isProfileLoading;
+
     if (isDataLoading) {
       setIsLoading(true);
       return;
     }
-    
+
     if (!user) {
       setIsLoading(false);
+      setReport(null);
       return;
     }
-
-    const needsFetching = user.uid !== lastFetchedUserId;
-
-    if (needsFetching && userProfile?.location?.lat && userProfile?.location?.lon) {
-      const fetchData = async () => {
-        setIsLoading(true);
-        setError(null);
-        setLastFetchedUserId(user.uid); // Mark as fetching for this user
-
-        try {
-          const todayClimate = await getClimateDataForCity(userProfile.location.lat!, userProfile.location.lon!);
-          const yesterdayClimate = await getYesterdayClimateData(userProfile.location.lat!, userProfile.location.lon!);
-
-          const fullReport = await generateDailyHealthReport({
-            userProfile,
-            todayClimate,
-            yesterdayClimate
-          });
-          
-          setReport({ ...fullReport, userProfile });
-
-          if (user && fullReport.dailySummary) {
-            const historyRef = collection(firestore, 'users', user.uid, 'exposureHistory');
-            const today = new Date().toISOString().split('T')[0];
-            const record: ExposureRecord = {
-              date: today,
-              personalHealthRiskScore: fullReport.dailySummary.personalHealthRiskScore,
-              maxHeat: todayClimate.temperature,
-              maxAqi: todayClimate.aqi,
-              maxUv: todayClimate.uvIndex,
-            };
-            addDocumentNonBlocking(historyRef, record);
-          }
-
-        } catch (error: any) {
-          console.error("Error generating daily health report:", error);
-          setError(error.message || "Could not load daily health report. The API key may be missing, invalid, or you may have exceeded your usage quota.");
-          setLastFetchedUserId(null); // Allow refetch on error
-        } finally {
-          setIsLoading(false);
-        }
-      };
-
-      fetchData();
-    } else if (!isDataLoading) {
-      if (!userProfile?.location?.city) {
-         setReport({ dailySummary: null, safetyAdvisory: null, dailyGuidance: null, userProfile: userProfile || null });
-      }
+    
+    if (userProfile && userProfile.location?.city) {
+       // Only fetch if there is no report or the report is for a different user
+       if (!report || report.userProfile?.id !== userProfile.id) {
+         fetchData();
+       }
+    } else {
+      // Handle case where user has no location set
+      setReport({ dailySummary: null, safetyAdvisory: null, dailyGuidance: null, userProfile: userProfile || null });
       setIsLoading(false);
     }
-  }, [user, isUserLoading, userProfile, isProfileLoading, firestore, lastFetchedUserId]);
 
-  const contextValue = { report, isLoading, error };
+  }, [user, isUserLoading, userProfile, isProfileLoading, fetchData, report]);
+
+  const refetch = () => {
+    // Clear the report to allow refetching
+    setReport(null);
+    fetchData();
+  }
+
+  const contextValue = { report, isLoading, error, refetch };
 
   return (
     <DailyReportContext.Provider value={contextValue}>

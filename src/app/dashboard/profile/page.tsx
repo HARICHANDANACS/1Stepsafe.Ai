@@ -15,9 +15,10 @@ import {
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useEffect } from 'react';
+import { useEffect, useContext } from 'react';
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
+import { DailyReportContext } from '../daily-report-provider';
 
 const formSchema = z.object({
   name: z.string().min(1, 'Name is required.'),
@@ -49,6 +50,8 @@ export default function ProfilePage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
+  const { refetch } = useContext(DailyReportContext);
+
 
   const userProfileRef = useMemoFirebase(() => {
     if (!user) return null;
@@ -95,6 +98,7 @@ export default function ProfilePage() {
     setDocumentNonBlocking(userProfileRef, profileData, { merge: true });
     form.reset(data); 
     toast.success('Your profile has been saved!');
+    refetch(); // Trigger a refetch of the daily report
     router.push('/dashboard');
   };
 
