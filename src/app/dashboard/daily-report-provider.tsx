@@ -49,11 +49,13 @@ export function DailyReportProvider({ children }: DailyReportProviderProps) {
     useDoc<UserProfile>(userProfileRef);
 
   useEffect(() => {
-    // If we are loading, or have an error, don't fetch again.
-    if (isLoading === false || error) return;
-    
     // Don't fetch until we have a user profile with location
-    if (isUserLoading || isProfileLoading) return;
+    if (isUserLoading || isProfileLoading) {
+      if (!report && !error) {
+        setIsLoading(true);
+      }
+      return;
+    }
 
     if (userProfile?.location?.lat && userProfile?.location?.lon) {
       const fetchData = async () => {
@@ -95,13 +97,19 @@ export function DailyReportProvider({ children }: DailyReportProviderProps) {
         }
       };
 
-      fetchData();
+      // Only fetch if we don't have a report yet for the current user profile
+      if (!report || report.userProfile?.id !== userProfile.id) {
+          fetchData();
+      } else {
+         setIsLoading(false);
+      }
+      
     } else if (!isProfileLoading && !isUserLoading) {
-      // If we're done loading but have no profile/location, stop loading.
+      // If we're done loading but have no profile/location, stop loading and show profile completion message.
       setReport({ dailySummary: null, safetyAdvisory: null, dailyGuidance: null, userProfile: userProfile || null });
       setIsLoading(false);
     }
-  }, [userProfile, isProfileLoading, user, firestore, isLoading, error, isUserLoading]);
+  }, [userProfile, isProfileLoading, user, firestore, isUserLoading]);
 
   const contextValue = { report, isLoading, error };
 
