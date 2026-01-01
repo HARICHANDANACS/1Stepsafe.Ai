@@ -1,16 +1,13 @@
 'use client';
 
-import { useUser, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
-import type { UserProfile, DailyGuidance, RiskLevel } from '@/lib/data';
-import { useEffect, useState } from 'react';
-import { getClimateDataForCity } from '@/lib/climate-service';
-import { generateLifePhaseGuidance } from '@/ai/flows/generate-life-phase-guidance.flow';
+import { useContext } from 'react';
+import { DailyReportContext } from '../daily-report-provider';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Thermometer, Sun, Wind, Cloud, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import type { RiskLevel } from '@/lib/data';
 
 const RiskIndicator = ({ level, name }: { level: RiskLevel, name: string }) => {
     const riskColor = {
@@ -51,50 +48,8 @@ const LoadingSkeleton = () => (
 )
 
 export default function GuidancePage() {
-    const { user, isUserLoading } = useUser();
-    const firestore = useFirestore();
-
-    const [dailyGuidance, setDailyGuidance] = useState<DailyGuidance | null>(null);
-    const [isDataLoading, setIsDataLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-
-    const userProfileRef = useMemoFirebase(() => {
-        if (!user) return null;
-        return doc(firestore, 'users', user.uid);
-    }, [firestore, user]);
-
-    const { data: userProfile, isLoading: isProfileLoading } =
-        useDoc<UserProfile>(userProfileRef);
-
-    useEffect(() => {
-        if (userProfile?.location?.lat && userProfile?.location?.lon) {
-            const fetchData = async () => {
-                setIsDataLoading(true);
-                setError(null);
-
-                try {
-                    const climateData = await getClimateDataForCity(userProfile.location.lat!, userProfile.location.lon!);
-
-                    const result = await generateLifePhaseGuidance({
-                        userProfile,
-                        climateData,
-                    });
-                    setDailyGuidance(result);
-                } catch (error: any) {
-                    console.error("Error generating daily guidance:", error);
-                    setError(error.message || "Could not generate guidance. The API key might be missing or invalid.");
-                } finally {
-                    setIsDataLoading(false);
-                }
-            };
-
-            fetchData();
-        } else if (!isProfileLoading && !userProfile) {
-            setIsDataLoading(false);
-        }
-    }, [userProfile, isProfileLoading]);
-
-    const isLoading = isUserLoading || isProfileLoading || isDataLoading;
+    const { report, isLoading, error } = useContext(DailyReportContext);
+    const dailyGuidance = report?.dailyGuidance;
 
     if (isLoading) {
         return <LoadingSkeleton />;

@@ -1,4 +1,6 @@
 import type { LucideIcon } from 'lucide-react';
+import type { DailyHealthReportSchema } from './schemas';
+import { z } from 'zod';
 
 export type ClimateSensitivity = 'Low' | 'Medium' | 'High';
 export type CommuteType = 'Walk' | 'Bike' | 'Public Transport' | 'Drive';
@@ -69,7 +71,6 @@ export type RiskProfile = {
   rainExposure: Risk;
 };
 
-
 export type DailySummary = {
     personalHealthRiskScore: number;
     quickInsight: string;
@@ -82,7 +83,7 @@ export type DailySummary = {
         end: string; // "HH:MM"
         isSafe: boolean;
     }[];
-};
+} | null;
 
 export type PhaseGuidance = {
   phase: LifePhase;
@@ -100,7 +101,11 @@ export type PhaseGuidance = {
 
 export type DailyGuidance = {
   phases: PhaseGuidance[];
-}
+} | null;
+
+export type SafetyAdvisory = {
+    advisory: string;
+} | null;
 
 export type ExposureRecord = {
     date: string; // YYYY-MM-DD
@@ -109,3 +114,6 @@ export type ExposureRecord = {
     maxAqi: number;
     maxUv: number;
 };
+
+// This is the single source of truth for the entire daily report
+export type DailyHealthReport = z.infer<typeof DailyHealthReportSchema>;

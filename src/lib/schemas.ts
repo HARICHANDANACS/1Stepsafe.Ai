@@ -44,7 +44,28 @@ export const LifePhaseSchema = z.enum([
 
 export const RiskLevelSchema = z.enum(['Low', 'Medium', 'High', 'Extreme']);
 
-export const PhaseGuidanceSchema = z.object({
+// Part 1: Daily Summary Schema
+const DailySummarySchema = z.object({
+  personalHealthRiskScore: z.number().min(0).max(100).describe('A personalized health risk score from 0 to 100.'),
+  quickInsight: z.string().describe('A concise, human-readable summary of the key risks and recommendations for the day.'),
+  whatChanged: z.object({
+    tempChange: z.number().describe('The change in temperature from yesterday to today.'),
+    aqiChange: z.number().describe('The change in AQI from yesterday to today.'),
+  }),
+  safeWindows: z.array(z.object({
+    start: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).describe('The start time of the window (HH:MM).'),
+    end: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).describe('The end time of the window (HH:MM).'),
+    isSafe: z.boolean().describe('Whether the window is considered safe or unsafe.'),
+  })).describe('An array of time windows for the day, marked as safe or unsafe.'),
+});
+
+// Part 2: Safety Advisory Schema
+const SafetyAdvisorySchema = z.object({
+  advisory: z.string().describe('A concise safety advisory paragraph (3-4 lines) based on the risk levels.'),
+});
+
+// Part 3: Detailed Guidance Schema
+const PhaseGuidanceSchema = z.object({
   phase: LifePhaseSchema,
   startTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
   endTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
@@ -58,6 +79,14 @@ export const PhaseGuidanceSchema = z.object({
   summary: z.string().describe('A concise, 1-2 sentence summary of the key advice for this phase.'),
 });
 
-export const DailyGuidanceSchema = z.object({
+const DailyGuidanceSchema = z.object({
   phases: z.array(PhaseGuidanceSchema),
+});
+
+
+// Final Uber-Schema: DailyHealthReport
+export const DailyHealthReportSchema = z.object({
+  dailySummary: DailySummarySchema.nullable(),
+  safetyAdvisory: SafetyAdvisorySchema.nullable(),
+  dailyGuidance: DailyGuidanceSchema.nullable(),
 });

@@ -1,106 +1,36 @@
 'use client';
 
 import { useUser, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { doc, collection } from 'firebase/firestore';
 import type { UserProfile, DailySummary, ExposureRecord } from '@/lib/data';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useContext } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from '@/components/ui/card';
 import { ArrowRight, Info } from 'lucide-react';
-import { getClimateDataForCity, getYesterdayClimateData } from '@/lib/climate-service';
-import { generateDailySummary } from '@/ai/flows/generate-daily-summary.flow';
-import { generateConciseSafetyAdvisory } from '@/ai/flows/generate-concise-safety-advisory.flow';
 import { Skeleton } from '@/components/ui/skeleton';
 import { SafeUnsafeTimeWindows } from './_components/safe-unsafe-time-windows';
 import { WhatChangedToday } from './_components/what-changed-today';
 import { PersonalHealthRiskScore } from './_components/personal-health-risk-score';
 import toast from 'react-hot-toast';
 import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
-import { collection } from 'firebase/firestore';
-
+import { DailyReportContext } from './daily-report-provider';
 
 export default function DashboardOverviewPage() {
-  const { user, isUserLoading } = useUser();
-  const firestore = useFirestore();
-
-  const [dailySummary, setDailySummary] = useState<DailySummary | null>(null);
-  const [safetyAdvisory, setSafetyAdvisory] = useState<string | null>(null);
-  const [isDataLoading, setIsDataLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const userProfileRef = useMemoFirebase(() => {
-    if (!user) return null;
-    return doc(firestore, 'users', user.uid);
-  }, [firestore, user]);
-
-  const { data: userProfile, isLoading: isProfileLoading } =
-    useDoc<UserProfile>(userProfileRef);
+  const { user } = useUser();
+  const { report, isLoading, error } = useContext(DailyReportContext);
+  const dailySummary = report?.dailySummary;
+  const safetyAdvisory = report?.safetyAdvisory?.advisory;
 
   useEffect(() => {
-    if (userProfile && userProfile.name) {
+    if (user && report?.userProfile?.name) {
       const welcomed = sessionStorage.getItem('welcomed');
       if (!welcomed) {
-        toast.success(`Welcome back, ${userProfile.name}!`);
+        toast.success(`Welcome back, ${report.userProfile.name}!`);
         sessionStorage.setItem('welcomed', 'true');
       }
     }
-  }, [userProfile]);
-
-  useEffect(() => {
-    if (userProfile?.location?.lat && userProfile?.location?.lon) {
-      const fetchData = async () => {
-        setIsDataLoading(true);
-        setError(null);
-
-        try {
-          const todayClimate = await getClimateDataForCity(userProfile.location.lat!, userProfile.location.lon!);
-          const yesterdayClimate = await getYesterdayClimateData(userProfile.location.lat!, userProfile.location.lon!);
-
-          // Generate both summary and advisory in parallel
-          const [summaryResult, advisoryResult] = await Promise.all([
-            generateDailySummary({
-              userProfile,
-              todayClimate,
-              yesterdayClimate
-            }),
-            generateConciseSafetyAdvisory({ climateData: todayClimate })
-          ]);
-          
-          setDailySummary(summaryResult);
-          setSafetyAdvisory(advisoryResult.advisory);
-
-           // After getting the summary, save the exposure record
-          if (user) {
-            const historyRef = collection(firestore, 'users', user.uid, 'exposureHistory');
-            const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-            const record: ExposureRecord = {
-              date: today,
-              personalHealthRiskScore: summaryResult.personalHealthRiskScore,
-              maxHeat: todayClimate.temperature,
-              maxAqi: todayClimate.aqi,
-              maxUv: todayClimate.uvIndex,
-            };
-            // This is a non-blocking write
-            addDocumentNonBlocking(historyRef, record);
-          }
-
-
-        } catch (error: any) {
-          console.error("Error generating daily data:", error);
-          setError(error.message || "Could not load daily summary. The API key may be missing or invalid.");
-        } finally {
-          setIsDataLoading(false);
-        }
-      };
-
-      fetchData();
-    } else if (!isProfileLoading && !userProfile) {
-      setIsDataLoading(false);
-    }
-  }, [userProfile, isProfileLoading, user, firestore]);
-
-  const isLoading = isUserLoading || isProfileLoading || isDataLoading;
+  }, [user, report]);
 
   if (isLoading) {
     return (
@@ -130,7 +60,7 @@ export default function DashboardOverviewPage() {
     );
   }
 
-  if (!userProfile?.location?.city) {
+  if (report && !report.userProfile?.location?.city) {
     return (
        <Card className="text-center p-8">
           <h2 className="text-xl font-semibold mb-2">Welcome to StepSafe AI!</h2>
