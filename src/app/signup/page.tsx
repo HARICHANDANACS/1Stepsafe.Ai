@@ -45,7 +45,11 @@ export default function SignUpPage() {
       await initiateEmailSignUp(auth, data.email, data.password);
       router.push('/dashboard/profile'); // Redirect to profile page to fill details
     } catch (error: any) {
-      setFirebaseError(error.message || 'Failed to create an account.');
+      if (error.code === 'auth/email-already-in-use') {
+        setFirebaseError('This email address is already in use. Please log in or use a different email.');
+      } else {
+        setFirebaseError(error.message || 'Failed to create an account.');
+      }
     }
   };
 

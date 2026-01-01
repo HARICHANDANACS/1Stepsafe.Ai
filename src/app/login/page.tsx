@@ -46,7 +46,11 @@ export default function LoginPage() {
       router.push('/dashboard');
     } catch (error: any) {
       console.error(error.message);
-      setFirebaseError(error.message || 'Failed to sign in.');
+      if (error.code === 'auth/invalid-credential') {
+        setFirebaseError('Invalid email or password. Please try again.');
+      } else {
+        setFirebaseError(error.message || 'Failed to sign in.');
+      }
     }
   };
 
