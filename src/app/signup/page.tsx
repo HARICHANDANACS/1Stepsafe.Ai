@@ -79,7 +79,21 @@ export default function SignUpPage() {
               <Input id="password" type="password" {...register('password')} />
                {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
             </div>
-            {firebaseError && <p className="text-sm text-destructive">{firebaseError}</p>}
+            {firebaseError && (
+              <div className="text-sm text-destructive">
+                {firebaseError.includes("already in use") ? (
+                  <p>
+                    This email is already in use. Please{' '}
+                    <Link href="/login" className="underline font-bold">
+                      Login
+                    </Link>{' '}
+                    instead.
+                  </p>
+                ) : (
+                  <p>{firebaseError}</p>
+                )}
+              </div>
+            )}
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
             <Button className="w-full" type="submit" disabled={isSubmitting}>
