@@ -51,7 +51,7 @@ export function DailyReportProvider({ children }: DailyReportProviderProps) {
     useDoc<UserProfile>(userProfileRef);
   
   const fetchData = useCallback(async (profile: UserProfile) => {
-    if (!profile.location?.lat || !profile.location?.lon) {
+    if (!profile.location?.lat || !profile.location?.lon || !user?.uid) {
       setIsLoading(false);
       return;
     }
@@ -70,9 +70,9 @@ export function DailyReportProvider({ children }: DailyReportProviderProps) {
       });
       
       setReport({ ...fullReport, userProfile: profile });
-      sessionStorage.setItem(`reportFetched_${user?.uid}`, 'true');
+      sessionStorage.setItem(`reportFetched_${user.uid}`, 'true');
       
-      if (user && fullReport.dailySummary) {
+      if (fullReport.dailySummary) {
         const historyRef = collection(firestore, 'users', user.uid, 'exposureHistory');
         const today = new Date().toISOString().split('T')[0];
         const record: ExposureRecord = {
@@ -108,23 +108,28 @@ export function DailyReportProvider({ children }: DailyReportProviderProps) {
     }
     
     if (userProfile && userProfile.location?.city) {
+        // This is the critical guard to prevent re-fetching in an infinite loop.
         const alreadyFetched = sessionStorage.getItem(`reportFetched_${user.uid}`);
         if (!alreadyFetched) {
             fetchData(userProfile);
         } else {
-             if (!report) {
-                // This can happen on page navigation, just show loading until state is restored or refetched.
-                setIsLoading(true); 
-             } else {
+             // If data was already fetched, just ensure loading is false.
+             // This prevents the loading skeleton from showing on every navigation.
+             if (isLoading) {
                 setIsLoading(false);
              }
         }
     } else if (userProfile) { // Profile exists but is incomplete
         setIsLoading(false);
+        // Set a partial report so the UI can prompt the user to complete their profile.
         setReport({ dailySummary: null, safetyAdvisory: null, dailyGuidance: null, userProfile });
+    } else if (!userProfile && !isProfileLoading) {
+        // The profile document doesn't exist for this user yet.
+        setIsLoading(false);
+        setReport(null);
     }
 
-  }, [user, userProfile, isUserLoading, isProfileLoading, fetchData, report]);
+  }, [user, userProfile, isUserLoading, isProfileLoading, fetchData, isLoading]);
 
 
   const refetch = useCallback(() => {
