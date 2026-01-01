@@ -10,6 +10,7 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter }
 import { ArrowRight, Info } from 'lucide-react';
 import { getClimateDataForCity, getYesterdayClimateData } from '@/lib/climate-service';
 import { generateDailySummary } from '@/ai/flows/generate-daily-summary.flow';
+import { generateConciseSafetyAdvisory } from '@/ai/flows/generate-concise-safety-advisory.flow';
 import { Skeleton } from '@/components/ui/skeleton';
 import { SafeUnsafeTimeWindows } from './_components/safe-unsafe-time-windows';
 import { WhatChangedToday } from './_components/what-changed-today';
@@ -21,6 +22,7 @@ export default function DashboardOverviewPage() {
   const firestore = useFirestore();
 
   const [dailySummary, setDailySummary] = useState<DailySummary | null>(null);
+  const [safetyAdvisory, setSafetyAdvisory] = useState<string | null>(null);
   const [isDataLoading, setIsDataLoading] = useState(true);
 
   const userProfileRef = useMemoFirebase(() => {
@@ -40,14 +42,21 @@ export default function DashboardOverviewPage() {
         const yesterdayClimate = getYesterdayClimateData(userProfile.location.city);
 
         try {
-          const result = await generateDailySummary({
-            userProfile,
-            todayClimate,
-            yesterdayClimate
-          });
-          setDailySummary(result);
+          // Generate both summary and advisory in parallel
+          const [summaryResult, advisoryResult] = await Promise.all([
+            generateDailySummary({
+              userProfile,
+              todayClimate,
+              yesterdayClimate
+            }),
+            generateConciseSafetyAdvisory({ climateData: todayClimate })
+          ]);
+          
+          setDailySummary(summaryResult);
+          setSafetyAdvisory(advisoryResult.advisory);
+
         } catch (error) {
-          console.error("Error generating daily summary:", error);
+          console.error("Error generating daily data:", error);
         } finally {
           setIsDataLoading(false);
         }
@@ -80,7 +89,7 @@ export default function DashboardOverviewPage() {
         <Card>
            <CardHeader>
               <Skeleton className="h-8 w-full" />
-           </CardHeader>
+           </Header>
            <CardContent>
               <Skeleton className="h-32 w-full" />
            </CardContent>
@@ -124,6 +133,13 @@ export default function DashboardOverviewPage() {
                         {dailySummary.quickInsight}
                     </CardDescription>
                 </CardHeader>
+                <CardContent>
+                    {safetyAdvisory && (
+                        <div className="p-4 bg-accent/50 border border-accent rounded-lg">
+                            <p className="text-sm text-accent-foreground/90">{safetyAdvisory}</p>
+                        </div>
+                    )}
+                </CardContent>
                 <CardFooter>
                     <Button asChild>
                         <Link href="/dashboard/guidance">View Today's Guidance <ArrowRight className="ml-2 h-4 w-4" /></Link>
