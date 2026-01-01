@@ -101,3 +101,11 @@ export type PhaseGuidance = {
 export type DailyGuidance = {
   phases: PhaseGuidance[];
 }
+
+export type ExposureRecord = {
+    date: string; // YYYY-MM-DD
+    personalHealthRiskScore: number;
+    maxHeat: number;
+    maxAqi: number;
+    maxUv: number;
+};

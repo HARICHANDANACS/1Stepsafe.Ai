@@ -87,6 +87,35 @@
         }
       },
       "required": ["id", "name", "location", "routine", "commuteType", "sensitivities"]
+    },
+    "ExposureRecord": {
+      "title": "Exposure Record",
+      "description": "A record of a user's environmental exposure for a single day.",
+      "type": "object",
+      "properties": {
+        "date": {
+          "type": "string",
+          "format": "date",
+          "description": "The date of the exposure record in YYYY-MM-DD format."
+        },
+        "personalHealthRiskScore": {
+          "type": "number",
+          "description": "The calculated personal health risk score for that day."
+        },
+        "maxHeat": {
+          "type": "number",
+          "description": "The maximum temperature recorded for that day."
+        },
+        "maxAqi": {
+          "type": "number",
+          "description": "The maximum AQI recorded for that day."
+        },
+        "maxUv": {
+          "type": "number",
+          "description": "The maximum UV index recorded for that day."
+        }
+      },
+      "required": ["date", "personalHealthRiskScore", "maxHeat", "maxAqi", "maxUv"]
     }
   },
   "auth": {
@@ -104,6 +133,16 @@
             "$ref": "#/backend/entities/UserProfile"
           },
           "description": "Stores a single document per user containing their complete profile. The document ID must match the user's Firebase Auth UID."
+        }
+      },
+      {
+        "path": "/users/{userId}/exposureHistory/{historyId}",
+        "definition": {
+            "entityName": "ExposureRecord",
+            "schema": {
+                "$ref": "#/backend/entities/ExposureRecord"
+            },
+            "description": "Stores a record of a user's environmental exposure for a single day."
         }
       }
     ]

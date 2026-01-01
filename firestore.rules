@@ -23,6 +23,18 @@ service cloud.firestore {
        * @deny User 'xyz' cannot read '/users/abc'.
        */
       allow read, write: if isOwner(userId);
+      
+      // Rules for the 'exposureHistory' subcollection
+      match /exposureHistory/{historyId} {
+        /**
+         * @description A user's daily exposure record. Only the authenticated owner
+         * can manage their own history.
+         * @path /users/{userId}/exposureHistory/{historyId}
+         * @allow User 'abc' can write to their own exposure history.
+         * @deny User 'xyz' cannot read 'abc's' history.
+         */
+        allow read, write: if isOwner(userId);
+      }
     }
   }
 }
