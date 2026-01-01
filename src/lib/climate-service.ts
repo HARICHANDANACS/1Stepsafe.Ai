@@ -52,7 +52,8 @@ export async function getClimateDataForCity(lat: number, lon: number): Promise<C
             humidity: data.humidity,
             uvIndex: Math.round(data.uvi),
             aqi: aqi,
-            rainProbability: data.rain ? (data.rain['1h'] || 0) * 100 : 0, // A simplification
+            // Safely access rain data
+            rainProbability: (data.rain && data.rain['1h']) ? data.rain['1h'] * 100 : 0,
         };
         
         cache.set(cacheKey, climateData);
@@ -87,9 +88,9 @@ export async function getYesterdayClimateData(lat: number, lon: number): Promise
          const climateData: ClimateData = {
             temperature: Math.round(data.temp),
             humidity: data.humidity,
-            uvIndex: Math.round(data.uvi),
+            uvIndex: Math.round(data.uvi), // Corrected from uvIndex
             aqi: aqi,
-            rainProbability: data.rain ? (data.rain['1h'] || 0) * 100 : 0,
+            rainProbability: (data.rain && data.rain['1h']) ? data.rain['1h'] * 100 : 0,
         };
 
         cache.set(cacheKey, climateData);

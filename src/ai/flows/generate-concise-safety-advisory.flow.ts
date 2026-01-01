@@ -10,7 +10,6 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import { analyzeRisks } from '@/lib/risk-engine';
-import type { ClimateData } from '@/lib/data';
 import { ClimateDataSchema }from '@/lib/schemas';
 
 const GenerateConciseSafetyAdvisoryInputSchema = z.object({
@@ -24,15 +23,7 @@ const GenerateConciseSafetyAdvisoryOutputSchema = z.object({
 export type GenerateConciseSafetyAdvisoryOutput = z.infer<typeof GenerateConciseSafetyAdvisoryOutputSchema>;
 
 export async function generateConciseSafetyAdvisory(input: GenerateConciseSafetyAdvisoryInput): Promise<GenerateConciseSafetyAdvisoryOutput> {
-  const riskProfile = analyzeRisks(input.climateData);
-  const flowInput = {
-    heatRisk: riskProfile.heatRisk.level,
-    uvRisk: riskProfile.uvRisk.level,
-    aqiRisk: riskProfile.aqiRisk.level,
-    humidityDiscomfort: riskProfile.humidityDiscomfort.level,
-    rainExposure: riskProfile.rainExposure.level,
-  };
-  return generateConciseSafetyAdvisoryFlow(flowInput);
+  return generateConciseSafetyAdvisoryFlow(input);
 }
 
 const prompt = ai.definePrompt({
@@ -61,17 +52,19 @@ const prompt = ai.definePrompt({
 const generateConciseSafetyAdvisoryFlow = ai.defineFlow(
   {
     name: 'generateConciseSafetyAdvisoryFlow',
-    inputSchema: z.object({
-        heatRisk: z.string(),
-        uvRisk: z.string(),
-        aqiRisk: z.string(),
-        humidityDiscomfort: z.string(),
-        rainExposure: z.string(),
-    }),
+    inputSchema: GenerateConciseSafetyAdvisoryInputSchema,
     outputSchema: GenerateConciseSafetyAdvisoryOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input);
+    const riskProfile = analyzeRisks(input.climateData);
+    const promptInput = {
+        heatRisk: riskProfile.heatRisk.level,
+        uvRisk: riskProfile.uvRisk.level,
+        aqiRisk: riskProfile.aqiRisk.level,
+        humidityDiscomfort: riskProfile.humidityDiscomfort.level,
+        rainExposure: riskProfile.rainExposure.level,
+    };
+    const {output} = await prompt(promptInput);
     return output!;
   }
 );
