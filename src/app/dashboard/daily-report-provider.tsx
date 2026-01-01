@@ -5,7 +5,7 @@ import { useUser, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { doc, collection } from 'firebase/firestore';
 import type { UserProfile, DailyHealthReport, ExposureRecord } from '@/lib/data';
 import { getClimateDataForCity, getYesterdayClimateData } from '@/lib/climate-service';
-import { generateDailyHealthReport } from '@/ai/flows/generate-daily-health-report.flow';
+import { generateSyntheticDailyHealthReport } from '@/lib/synthetic-data-service';
 import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 interface DailyReportContextType {
@@ -65,7 +65,7 @@ export function DailyReportProvider({ children }: DailyReportProviderProps) {
       const todayClimate = await getClimateDataForCity(userProfile.location.lat, userProfile.location.lon);
       const yesterdayClimate = await getYesterdayClimateData(userProfile.location.lat, userProfile.location.lon);
       
-      const fullReport = await generateDailyHealthReport({
+      const fullReport = generateSyntheticDailyHealthReport({
         userProfile,
         todayClimate,
         yesterdayClimate
@@ -88,8 +88,8 @@ export function DailyReportProvider({ children }: DailyReportProviderProps) {
       
     } catch (error: any) {
       console.error("Error generating daily health report:", error);
-      setError(error.message || "Could not load daily health report. The API key may be missing, invalid, or you may have exceeded your usage quota.");
-      setReport(null); // Clear stale report on error
+      setError(error.message || "Could not load daily health report.");
+      setReport(null);
     } finally {
       setIsLoading(false);
     }
@@ -110,15 +110,12 @@ export function DailyReportProvider({ children }: DailyReportProviderProps) {
     }
     
     if (userProfile && userProfile.location?.city) {
-       // Only fetch if there is no report or the report is for a different user
        if (!report || report.userProfile?.id !== userProfile.id) {
          fetchData();
        } else {
-        // Data is already loaded for the current user and profile
         setIsLoading(false);
        }
     } else {
-      // Handle case where user has no location set
       setIsLoading(false);
       setReport({ dailySummary: null, safetyAdvisory: null, dailyGuidance: null, userProfile: userProfile || null });
     }
@@ -126,7 +123,6 @@ export function DailyReportProvider({ children }: DailyReportProviderProps) {
   }, [user, isUserLoading, userProfile, isProfileLoading, fetchData, report]);
 
   const refetch = useCallback(() => {
-    // Clear the report to allow refetching
     setReport(null);
     fetchData();
   }, [fetchData]);
