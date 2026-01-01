@@ -5,7 +5,7 @@ import { useUser, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { doc, collection } from 'firebase/firestore';
 import type { UserProfile, DailyHealthReport, ExposureRecord } from '@/lib/data';
 import { getClimateDataForCity, getYesterdayClimateData } from '@/lib/climate-service';
-import { generateDailyHealthReport } from '@/ai/flows/generate-daily-health-report.flow';
+import { generateSyntheticDailyHealthReport } from '@/lib/synthetic-data-service';
 import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 interface DailyReportContextType {
@@ -60,33 +60,29 @@ export function DailyReportProvider({ children }: DailyReportProviderProps) {
     setError(null);
     
     try {
-      const todayClimate = await getClimateDataForCity(profile.location.lat, profile.location.lon);
-      const yesterdayClimate = await getYesterdayClimateData(profile.location.lat, profile.location.lon);
-      
-      const fullReport = await generateDailyHealthReport({
-        userProfile: profile,
-        todayClimate,
-        yesterdayClimate
-      });
+      // ** Using Synthetic Data Generation instead of AI flow **
+      const fullReport = generateSyntheticDailyHealthReport(profile);
       
       setReport({ ...fullReport, userProfile: profile });
       sessionStorage.setItem(`reportFetched_${user.uid}`, 'true');
       
+      // Still log exposure history based on synthetic data for now
       if (fullReport.dailySummary) {
         const historyRef = collection(firestore, 'users', user.uid, 'exposureHistory');
         const today = new Date().toISOString().split('T')[0];
         const record: ExposureRecord = {
           date: today,
           personalHealthRiskScore: fullReport.dailySummary.personalHealthRiskScore,
-          maxHeat: todayClimate.temperature,
-          maxAqi: todayClimate.aqi,
-          maxUv: todayClimate.uvIndex,
+          // Using placeholder values as we are not fetching real climate data
+          maxHeat: 75 + Math.round(Math.random() * 10), 
+          maxAqi: 50 + Math.round(Math.random() * 20),
+          maxUv: 5 + Math.round(Math.random() * 2),
         };
         addDocumentNonBlocking(historyRef, record);
       }
       
     } catch (error: any) {
-      console.error("Error generating daily health report:", error);
+      console.error("Error generating synthetic daily health report:", error);
       setError(error.message || "Could not load daily health report.");
       setReport(null);
     } finally {
@@ -108,23 +104,18 @@ export function DailyReportProvider({ children }: DailyReportProviderProps) {
     }
     
     if (userProfile && userProfile.location?.city) {
-        // This is the critical guard to prevent re-fetching in an infinite loop.
         const alreadyFetched = sessionStorage.getItem(`reportFetched_${user.uid}`);
         if (!alreadyFetched) {
             fetchData(userProfile);
         } else {
-             // If data was already fetched, just ensure loading is false.
-             // This prevents the loading skeleton from showing on every navigation.
              if (isLoading) {
                 setIsLoading(false);
              }
         }
-    } else if (userProfile) { // Profile exists but is incomplete
+    } else if (userProfile) { 
         setIsLoading(false);
-        // Set a partial report so the UI can prompt the user to complete their profile.
         setReport({ dailySummary: null, safetyAdvisory: null, dailyGuidance: null, userProfile });
     } else if (!userProfile && !isProfileLoading) {
-        // The profile document doesn't exist for this user yet.
         setIsLoading(false);
         setReport(null);
     }
