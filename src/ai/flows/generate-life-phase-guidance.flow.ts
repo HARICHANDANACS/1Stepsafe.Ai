@@ -107,7 +107,7 @@ Your goal is to provide specific, actionable guidance for each phase of a user's
 const generateLifePhaseGuidanceFlow = ai.defineFlow(
   {
     name: 'generateLifePhaseGuidanceFlow',
-    inputSchema: GenerateLife-PhaseGuidanceInputSchema.extend({
+    inputSchema: GenerateLifePhaseGuidanceInputSchema.extend({
         riskProfile: z.any(),
         lifePhases: z.array(z.object({
             phase: LifePhaseSchema,
