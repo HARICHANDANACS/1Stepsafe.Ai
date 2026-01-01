@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useState, useEffect, ReactNode, useContext } from 'react';
 import { useUser, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { doc, collection } from 'firebase/firestore';
 import type { UserProfile, DailyHealthReport, ExposureRecord } from '@/lib/data';
@@ -19,6 +19,14 @@ export const DailyReportContext = createContext<DailyReportContextType>({
   isLoading: true,
   error: null,
 });
+
+export const useDailyReport = () => {
+    const context = useContext(DailyReportContext);
+    if (context === undefined) {
+        throw new Error('useDailyReport must be used within a DailyReportProvider');
+    }
+    return context;
+}
 
 interface DailyReportProviderProps {
   children: ReactNode;
@@ -41,8 +49,8 @@ export function DailyReportProvider({ children }: DailyReportProviderProps) {
     useDoc<UserProfile>(userProfileRef);
 
   useEffect(() => {
-    // If we've already fetched, are loading, or have an error, don't fetch again.
-    if (report || isLoading === false || error) return;
+    // If we are loading, or have an error, don't fetch again.
+    if (isLoading === false || error) return;
     
     // Don't fetch until we have a user profile with location
     if (isUserLoading || isProfileLoading) return;
@@ -65,7 +73,7 @@ export function DailyReportProvider({ children }: DailyReportProviderProps) {
           setReport({ ...fullReport, userProfile });
 
           // After getting the summary, save the exposure record
-          if (user) {
+          if (user && fullReport.dailySummary) {
             const historyRef = collection(firestore, 'users', user.uid, 'exposureHistory');
             const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
             const record: ExposureRecord = {
@@ -93,7 +101,7 @@ export function DailyReportProvider({ children }: DailyReportProviderProps) {
       setReport({ dailySummary: null, safetyAdvisory: null, dailyGuidance: null, userProfile: userProfile || null });
       setIsLoading(false);
     }
-  }, [userProfile, isProfileLoading, user, firestore, report, isLoading, error, isUserLoading]);
+  }, [userProfile, isProfileLoading, user, firestore, isLoading, error, isUserLoading]);
 
   const contextValue = { report, isLoading, error };
 

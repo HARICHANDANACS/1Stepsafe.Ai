@@ -1,7 +1,7 @@
 'use client';
 
 import { useContext } from 'react';
-import { DailyReportContext } from '../daily-report-provider';
+import { useDailyReport } from '../daily-report-provider';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Skeleton } from '@/components/ui/skeleton';
@@ -48,7 +48,7 @@ const LoadingSkeleton = () => (
 )
 
 export default function GuidancePage() {
-    const { report, isLoading, error } = useContext(DailyReportContext);
+    const { report, isLoading, error } = useDailyReport();
     const dailyGuidance = report?.dailyGuidance;
 
     if (isLoading) {

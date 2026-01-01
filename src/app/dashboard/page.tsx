@@ -1,24 +1,21 @@
 'use client';
 
-import { useUser, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
-import { doc, collection } from 'firebase/firestore';
-import type { UserProfile, DailySummary, ExposureRecord } from '@/lib/data';
-import { useEffect, useState, useContext } from 'react';
+import { useUser } from '@/firebase';
+import { useEffect } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from '@/components/ui/card';
-import { ArrowRight, Info } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { SafeUnsafeTimeWindows } from './_components/safe-unsafe-time-windows';
 import { WhatChangedToday } from './_components/what-changed-today';
 import { PersonalHealthRiskScore } from './_components/personal-health-risk-score';
 import toast from 'react-hot-toast';
-import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
-import { DailyReportContext } from './daily-report-provider';
+import { useDailyReport } from './daily-report-provider';
 
 export default function DashboardOverviewPage() {
   const { user } = useUser();
-  const { report, isLoading, error } = useContext(DailyReportContext);
+  const { report, isLoading, error } = useDailyReport();
   const dailySummary = report?.dailySummary;
   const safetyAdvisory = report?.safetyAdvisory?.advisory;
 
