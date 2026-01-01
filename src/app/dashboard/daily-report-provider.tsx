@@ -49,67 +49,66 @@ export function DailyReportProvider({ children }: DailyReportProviderProps) {
     useDoc<UserProfile>(userProfileRef);
 
   useEffect(() => {
-    // Don't fetch until we have a user profile with location
     if (isUserLoading || isProfileLoading) {
-      if (!report && !error) {
-        setIsLoading(true);
-      }
+      setIsLoading(true);
       return;
     }
-
+    
+    // Check if we have a user profile and location data
     if (userProfile?.location?.lat && userProfile?.location?.lon) {
-      const fetchData = async () => {
-        setIsLoading(true);
-        setError(null);
-
-        try {
-          const todayClimate = await getClimateDataForCity(userProfile.location.lat!, userProfile.location.lon!);
-          const yesterdayClimate = await getYesterdayClimateData(userProfile.location.lat!, userProfile.location.lon!);
-
-          const fullReport = await generateDailyHealthReport({
-            userProfile,
-            todayClimate,
-            yesterdayClimate
-          });
-          
-          setReport({ ...fullReport, userProfile });
-
-          // After getting the summary, save the exposure record
-          if (user && fullReport.dailySummary) {
-            const historyRef = collection(firestore, 'users', user.uid, 'exposureHistory');
-            const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-            const record: ExposureRecord = {
-              date: today,
-              personalHealthRiskScore: fullReport.dailySummary.personalHealthRiskScore,
-              maxHeat: todayClimate.temperature,
-              maxAqi: todayClimate.aqi,
-              maxUv: todayClimate.uvIndex,
-            };
-            // This is a non-blocking write
-            addDocumentNonBlocking(historyRef, record);
-          }
-
-        } catch (error: any) {
-          console.error("Error generating daily health report:", error);
-          setError(error.message || "Could not load daily health report. The API key may be missing, invalid, or you may have exceeded your usage quota.");
-        } finally {
-          setIsLoading(false);
-        }
-      };
-
-      // Only fetch if we don't have a report yet for the current user profile
+      // Only fetch if we don't have a report or if the user has changed.
       if (!report || report.userProfile?.id !== userProfile.id) {
-          fetchData();
+        const fetchData = async () => {
+          setIsLoading(true);
+          setError(null);
+
+          try {
+            const todayClimate = await getClimateDataForCity(userProfile.location.lat!, userProfile.location.lon!);
+            const yesterdayClimate = await getYesterdayClimateData(userProfile.location.lat!, userProfile.location.lon!);
+
+            const fullReport = await generateDailyHealthReport({
+              userProfile,
+              todayClimate,
+              yesterdayClimate
+            });
+            
+            setReport({ ...fullReport, userProfile });
+
+            // After getting the summary, save the exposure record
+            if (user && fullReport.dailySummary) {
+              const historyRef = collection(firestore, 'users', user.uid, 'exposureHistory');
+              const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+              const record: ExposureRecord = {
+                date: today,
+                personalHealthRiskScore: fullReport.dailySummary.personalHealthRiskScore,
+                maxHeat: todayClimate.temperature,
+                maxAqi: todayClimate.aqi,
+                maxUv: todayClimate.uvIndex,
+              };
+              // This is a non-blocking write
+              addDocumentNonBlocking(historyRef, record);
+            }
+
+          } catch (error: any) {
+            console.error("Error generating daily health report:", error);
+            setError(error.message || "Could not load daily health report. The API key may be missing, invalid, or you may have exceeded your usage quota.");
+          } finally {
+            setIsLoading(false);
+          }
+        };
+
+        fetchData();
+
       } else {
-         setIsLoading(false);
+        // We already have the correct report, so we are not loading.
+        setIsLoading(false);
       }
-      
     } else if (!isProfileLoading && !isUserLoading) {
       // If we're done loading but have no profile/location, stop loading and show profile completion message.
       setReport({ dailySummary: null, safetyAdvisory: null, dailyGuidance: null, userProfile: userProfile || null });
       setIsLoading(false);
     }
-  }, [userProfile, isProfileLoading, user, firestore, isUserLoading]);
+  }, [user?.uid, isUserLoading, isProfileLoading]); // Depend on stable, primitive values
 
   const contextValue = { report, isLoading, error };
 
